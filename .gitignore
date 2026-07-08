@@ -1,0 +1,13 @@
+# Build artifacts
+.build/
+*.app
+
+
+# IDE
+.vscode/
+*.xcworkspace
+*.xcuserdata
+
+.claude/
+scripts/
+
