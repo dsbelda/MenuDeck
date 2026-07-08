@@ -7,22 +7,24 @@ struct ClipboardItem: Identifiable {
     let date: Date
 }
 
+// MARK: - Manager (singleton – keeps polling the pasteboard after popover close)
+
 @MainActor
 final class ClipboardManager: ObservableObject {
+    static let shared = ClipboardManager()
+
     @Published var history: [ClipboardItem] = []
 
     private var timer: Timer?
-    private var lastChangeCount: Int = -1
+    private var lastChangeCount: Int
     private let maxItems = 25
 
-    func start() {
+    private init() {
         lastChangeCount = NSPasteboard.general.changeCount
         timer = Timer.scheduledTimer(withTimeInterval: 0.8, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.poll() }
         }
     }
-
-    func stop() { timer?.invalidate(); timer = nil }
 
     private func poll() {
         let count = NSPasteboard.general.changeCount
