@@ -2,6 +2,9 @@
 .build/
 *.app
 
+# macOS
+.DS_Store
+._*
 
 # IDE
 .vscode/
@@ -9,5 +12,4 @@
 *.xcuserdata
 
 .claude/
-scripts/
 

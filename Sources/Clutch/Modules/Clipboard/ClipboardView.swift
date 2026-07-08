@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ClipboardView: View {
-    @StateObject private var mgr = ClipboardManager()
+    @ObservedObject private var mgr = ClipboardManager.shared
     @State private var copiedId: UUID? = nil
 
     var body: some View {
@@ -13,8 +13,6 @@ struct ClipboardView: View {
                 itemList
             }
         }
-        .onAppear  { mgr.start() }
-        .onDisappear { mgr.stop() }
     }
 
     // MARK: – Toolbar
