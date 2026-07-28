@@ -16,7 +16,7 @@ final class BatteryManager: ObservableObject {
 
     func start() {
         refresh()
-        timer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
+        timer = .repeating(every: 30, tolerance: 5) { [weak self] _ in
             Task { @MainActor in self?.refresh() }
         }
     }

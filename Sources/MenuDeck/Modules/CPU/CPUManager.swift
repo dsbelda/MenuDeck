@@ -25,7 +25,7 @@ final class CPUManager: ObservableObject {
 
     func start() {
         refresh()
-        timer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
+        timer = .repeating(every: 2, tolerance: 0.5) { [weak self] _ in
             Task { @MainActor in self?.refresh() }
         }
     }

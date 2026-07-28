@@ -187,15 +187,35 @@ struct TempReading: Identifiable {
 
 // MARK: - SMC Manager
 
-final class SMCManager {
+/// Every read here is a blocking `IOConnectCallStructMethod` round-trip, and
+/// `readTemperatures()` can make dozens of them. An actor keeps that work off
+/// the main thread — the popover animates while the SMC is being polled — and
+/// serializes it, so the single `io_connect_t` is never used concurrently.
+actor SMCManager {
+    static let shared = SMCManager()
+
     private var connection: io_connect_t = 0
     private let methodSelector: UInt32 = 2  // kSMCHandleYPCEvent
 
-    var isOpen: Bool { connection != 0 }
-    private(set) var openError: String? = nil
+    private var isOpen: Bool { connection != 0 }
+    private var openError: String? = nil
+    private var didAttemptOpen = false
 
-    init() {
+    private init() {}
+
+    /// Opened on first use rather than in init: an actor's initializer cannot
+    /// call isolated methods, and IOServiceOpen is exactly the kind of blocking
+    /// work that should happen on the actor's executor anyway.
+    private func ensureOpen() {
+        guard !didAttemptOpen else { return }
+        didAttemptOpen = true
         open()
+    }
+
+    /// Why the SMC is unavailable, or nil if it opened fine.
+    func openFailure() -> String? {
+        ensureOpen()
+        return openError
     }
 
     deinit {
@@ -204,6 +224,7 @@ final class SMCManager {
 
     /// Fastest single-key CPU temperature read — used by the dynamic menu bar display.
     func currentCPUTemp() -> Double? {
+        ensureOpen()
         guard isOpen else { return nil }
         // Try each chip generation's primary core key in order
         for key in ["Tp00", "Tf04", "Te05", "Tp01", "TC0D"] {
@@ -213,6 +234,7 @@ final class SMCManager {
     }
 
     func readTemperatures() -> [TempReading] {
+        ensureOpen()
         guard isOpen else { return [] }
 
         // Fast path: try the static key list first
@@ -229,6 +251,7 @@ final class SMCManager {
 
     /// Runs step-by-step diagnostics and returns a human-readable string.
     func runDiagnostics() -> String {
+        ensureOpen()
         var lines: [String] = []
 
         guard isOpen else {

@@ -42,7 +42,7 @@ final class CaffeineManager: ObservableObject {
 
         if let duration = Self.durations[selectedDurationIndex].seconds {
             remainingSeconds = Int(duration)
-            countdownTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+            countdownTimer = .repeating(every: 1, tolerance: 0.1) { [weak self] _ in
                 Task { @MainActor in self?.tickCountdown() }
             }
         } else {

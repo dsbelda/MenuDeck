@@ -21,7 +21,9 @@ final class ClipboardManager: ObservableObject {
 
     private init() {
         lastChangeCount = NSPasteboard.general.changeCount
-        timer = Timer.scheduledTimer(withTimeInterval: 0.8, repeats: true) { [weak self] _ in
+        // Runs for the whole app lifetime by design — history has to accrue
+        // while the popover is closed — so keep the cadence modest.
+        timer = .repeating(every: 1.5, tolerance: 0.3) { [weak self] _ in
             Task { @MainActor in self?.poll() }
         }
     }
