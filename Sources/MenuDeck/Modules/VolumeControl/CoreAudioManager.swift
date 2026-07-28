@@ -69,7 +69,7 @@ final class CoreAudioManager: ObservableObject {
     // MARK: – Private
 
     /// Returns existing or newly created controller for the app.
-    /// First call ever made triggers macOS's "Clutch wants to use Audio
+    /// First call ever made triggers macOS's "MenuDeck wants to use Audio
     /// Capture" system prompt (no public API exists to pre-check this).
     @discardableResult
     private func ensureController(for app: AudioApp) -> PerAppController? {

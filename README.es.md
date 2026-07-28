@@ -1,4 +1,4 @@
-# Clutch
+# MenuDeck
 
 **[English](README.md) | [Español](README.es.md)**
 
@@ -38,7 +38,7 @@ Una utilidad modular para la barra de menú de macOS. Vive en la esquina superio
 
 ## Cómo ejecutarlo
 
-Clutch es un proyecto de Swift Package Manager gestionado con un `Makefile`. Debe ejecutarse como un `.app` firmado (no el binario en crudo) — de lo contrario macOS no concede ni conserva permisos TCC como el de Audio Capture.
+MenuDeck es un proyecto de Swift Package Manager gestionado con un `Makefile`. Debe ejecutarse como un `.app` firmado (no el binario en crudo) — de lo contrario macOS no concede ni conserva permisos TCC como el de Audio Capture.
 
 ### Ejecutar en desarrollo
 
@@ -46,7 +46,7 @@ Clutch es un proyecto de Swift Package Manager gestionado con un `Makefile`. Deb
 make run
 ```
 
-Esto compila un binario de depuración, lo empaqueta en `Clutch.app`, lo firma ad-hoc, mata cualquier instancia en ejecución y lo vuelve a abrir.
+Esto compila un binario de depuración, lo empaqueta en `MenuDeck.app`, lo firma ad-hoc, mata cualquier instancia en ejecución y lo vuelve a abrir.
 
 ### Compilar un bundle .app de release
 
@@ -54,7 +54,7 @@ Esto compila un binario de depuración, lo empaqueta en `Clutch.app`, lo firma a
 make app
 ```
 
-Crea `Clutch.app` en la carpeta del proyecto (configuración release).
+Crea `MenuDeck.app` en la carpeta del proyecto (configuración release).
 
 ### Instalar en /Applications
 
@@ -62,7 +62,7 @@ Crea `Clutch.app` en la carpeta del proyecto (configuración release).
 make install
 ```
 
-Copia el bundle de release a `/Applications/Clutch.app`. Para que se abra automáticamente al iniciar sesión: **Ajustes del Sistema → General → Elementos de inicio de sesión → añadir Clutch**.
+Copia el bundle de release a `/Applications/MenuDeck.app`. Para que se abra automáticamente al iniciar sesión: **Ajustes del Sistema → General → Elementos de inicio de sesión → añadir MenuDeck**.
 
 ### Limpiar artefactos de compilación
 
@@ -70,20 +70,20 @@ Copia el bundle de release a `/Applications/Clutch.app`. Para que se abra autom�
 make clean
 ```
 
-Elimina `.build/` y `Clutch.app`.
+Elimina `.build/` y `MenuDeck.app`.
 
 ---
 
 ## Arquitectura
 
 ```
-Sources/Clutch/
+Sources/MenuDeck/
 ├── main.swift                       # Punto de entrada de NSApplication
 ├── AppDelegate.swift                # Oculta del Dock (LSUIElement)
 ├── MenuBar/
 │   └── MenuBarController.swift      # NSStatusItem + NSPopover
 ├── Views/
-│   ├── ClutchPopoverView.swift      # Vista raíz de SwiftUI (cuadrícula + ajustes)
+│   ├── MenuDeckPopoverView.swift      # Vista raíz de SwiftUI (cuadrícula + ajustes)
 │   └── ModuleSectionView.swift      # Sección colapsable por módulo
 └── Modules/
     ├── Module.swift                 # Protocolo que implementa cada módulo
@@ -97,7 +97,7 @@ Sources/Clutch/
 
 ### Añadir un nuevo módulo
 
-1. Crea `Sources/Clutch/Modules/MiModulo/`
+1. Crea `Sources/MenuDeck/Modules/MiModulo/`
 2. Implementa el protocolo `Module`:
 
 ```swift
@@ -114,7 +114,7 @@ final class MyModule: Module {
 }
 ```
 
-3. Regístralo en `ClutchPopoverView.swift`:
+3. Regístralo en `MenuDeckPopoverView.swift`:
 
 ```swift
 private let allModules: [any Module] = [

@@ -2,7 +2,7 @@ import AppKit
 import Foundation
 
 extension Notification.Name {
-    static let clutchClosePopover = Notification.Name("com.clutch.closePopover")
+    static let menuDeckClosePopover = Notification.Name("com.menudeck.closePopover")
 }
 
 @MainActor
@@ -25,7 +25,7 @@ final class ScreenshotManager: ObservableObject {
         lastError = nil
 
         // Signal MenuBarController to close the popover before capturing
-        NotificationCenter.default.post(name: .clutchClosePopover, object: nil)
+        NotificationCenter.default.post(name: .menuDeckClosePopover, object: nil)
 
         // Give the popover animation time to finish before screencapture takes over
         let settle: Double = delay > 0 ? 0.3 : 0.45

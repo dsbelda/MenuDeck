@@ -2,12 +2,12 @@
 import PackageDescription
 
 let package = Package(
-    name: "Clutch",
+    name: "MenuDeck",
     platforms: [.macOS(.v26)],
     targets: [
         .executableTarget(
-            name: "Clutch",
-            path: "Sources/Clutch",
+            name: "MenuDeck",
+            path: "Sources/MenuDeck",
             exclude: ["Assets/AppIcon.icns"],
             resources: [.copy("Assets/AppIcon.png")]
         )

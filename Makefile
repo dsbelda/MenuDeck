@@ -1,5 +1,5 @@
-APP_NAME    = Clutch
-BUNDLE_ID   = com.clutch.app
+APP_NAME    = MenuDeck
+BUNDLE_ID   = com.menudeck.app
 BUNDLE      = $(APP_NAME).app
 BUILD_DIR   = .build/debug
 RELEASE_DIR = .build/release
