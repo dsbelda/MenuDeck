@@ -12,7 +12,6 @@ final class MenuBarController: NSObject {
     // Dynamic icon state
     private var displayTimer: Timer?
     private var appliedMode: String?
-    private lazy var smcReader = SMCManager()  // dedicated instance for menu bar reads
     private var cpuPrevTicks = [Int: (UInt32, UInt32, UInt32, UInt32)]()
 
     override init() {
@@ -72,7 +71,7 @@ final class MenuBarController: NSObject {
 
     private func startDisplayTimer() {
         refreshDisplay()
-        displayTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
+        displayTimer = .repeating(every: 5, tolerance: 1) { [weak self] _ in
             Task { @MainActor in self?.refreshDisplay() }
         }
     }
@@ -80,37 +79,38 @@ final class MenuBarController: NSObject {
     @objc private func refreshDisplay() {
         let mode = currentMode
         appliedMode = mode
-        guard let button = statusItem.button else { return }
 
         switch mode {
         case "temp":
-            if let t = smcReader.currentCPUTemp() {
-                setTitle(String(format: "%.0f°", t), button: button)
-            } else {
-                applyIcon()
+            // The SMC read is a blocking IOKit round-trip, so it happens on the
+            // actor's executor and only comes back here to draw.
+            Task { [weak self] in
+                guard let t = await SMCManager.shared.currentCPUTemp() else {
+                    self?.applyIcon(); return
+                }
+                self?.setTitle(String(format: "%.0f°", t))
             }
 
         case "battery":
             if let lvl = readBatteryLevel() {
-                setTitle("\(lvl)%", button: button)
+                setTitle("\(lvl)%")
             } else {
                 applyIcon()
             }
 
         case "cpu":
-            let pct = readCPUAvg()
-            setTitle(String(format: "%.0f%%", pct), button: button)
+            setTitle(String(format: "%.0f%%", readCPUAvg()))
 
         case "memory":
-            let gb = readUsedRAM()
-            setTitle(String(format: "%.1fG", gb), button: button)
+            setTitle(String(format: "%.1fG", readUsedRAM()))
 
         default:   // "icon"
             applyIcon()
         }
     }
 
-    private func setTitle(_ text: String, button: NSStatusBarButton) {
+    private func setTitle(_ text: String) {
+        guard let button = statusItem.button else { return }
         button.image = nil
         let attrs: [NSAttributedString.Key: Any] = [
             .font: NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .medium)
@@ -135,8 +135,11 @@ final class MenuBarController: NSObject {
         if popover.isShown {
             popover.performClose(nil)
         } else {
-            CoreAudioManager.shared.refresh()
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+            // Enumerating the HAL walks every audio process and its parent
+            // chain — too slow to sit in front of the open animation. The
+            // volume module refreshes again in its own onAppear.
+            Task { @MainActor in CoreAudioManager.shared.refresh() }
         }
     }
 

@@ -7,7 +7,9 @@ final class ThermalViewModel: ObservableObject {
     @Published var smcError: String? = nil
     @Published var diagnostics: String? = nil
 
-    private let smc = SMCManager()
+    /// Opt in with: defaults write com.menudeck.app menudeck.debug.smc -bool YES
+    private static let diagnosticsKey = "menudeck.debug.smc"
+
     private var timer: Timer?
 
     var maxCPUTemp: Double? {
@@ -15,10 +17,19 @@ final class ThermalViewModel: ObservableObject {
     }
 
     func start() {
-        smcError = smc.openError
-        diagnostics = smc.runDiagnostics()
+        Task {
+            smcError = await SMCManager.shared.openFailure()
+
+            // Probing every selector and enumerating the whole key space is
+            // ~100 blocking IOKit calls. It is debug instrumentation, and it
+            // used to run on the main thread on every tile tap.
+            if UserDefaults.standard.bool(forKey: Self.diagnosticsKey) {
+                diagnostics = await SMCManager.shared.runDiagnostics()
+            }
+        }
+
         refresh()
-        timer = Timer.scheduledTimer(withTimeInterval: 3, repeats: true) { [weak self] _ in
+        timer = .repeating(every: 3, tolerance: 0.7) { [weak self] _ in
             Task { @MainActor in self?.refresh() }
         }
     }
@@ -30,7 +41,7 @@ final class ThermalViewModel: ObservableObject {
 
     private func refresh() {
         thermalState = ProcessInfo.processInfo.thermalState
-        readings = smc.readTemperatures()
+        Task { readings = await SMCManager.shared.readTemperatures() }
     }
 }
 

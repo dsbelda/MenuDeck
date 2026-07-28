@@ -96,10 +96,17 @@ private struct ClipboardRow: View {
 
     @State private var isHovered = false
 
-    private var relativeTime: String {
+    /// Allocating a formatter is expensive, and this is read from body — once
+    /// per row, per frame. Built once instead.
+    @MainActor
+    private static let timeFormatter: RelativeDateTimeFormatter = {
         let f = RelativeDateTimeFormatter()
         f.unitsStyle = .short
-        return f.localizedString(for: item.date, relativeTo: Date())
+        return f
+    }()
+
+    private var relativeTime: String {
+        Self.timeFormatter.localizedString(for: item.date, relativeTo: Date())
     }
 
     var body: some View {

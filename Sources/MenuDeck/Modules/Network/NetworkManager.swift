@@ -12,119 +12,130 @@ final class NetworkManager: ObservableObject {
     @Published var isWiFi: Bool = false
     @Published var signalBars: Int = 0   // 0...3, only meaningful when isWiFi
 
-    private var timer: Timer?
+    private var throughputTimer: Timer?
+    private var wirelessTimer: Timer?
     private var lastBytes: (in: UInt64, out: UInt64)?
     private var lastSampleDate: Date?
 
+    /// Created once. Rebuilding the store on every lookup was two of the three
+    /// expensive system calls this class made per second.
+    private lazy var store = SCDynamicStoreCreate(nil, "MenuDeck" as CFString, nil, nil)
+
     func start() {
-        refreshStaticInfo()
-        sampleThroughput()
-        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                self?.sampleThroughput()
-                self?.refreshStaticInfo()
-            }
+        sample()
+        refreshWireless()
+
+        throughputTimer = .repeating(every: 1, tolerance: 0.2) { [weak self] _ in
+            Task { @MainActor in self?.sample() }
+        }
+        // SSID and RSSI go through CoreWLAN's IPC and barely change. Polling
+        // them at 1 Hz alongside throughput was most of this module's cost.
+        wirelessTimer = .repeating(every: 5, tolerance: 1) { [weak self] _ in
+            Task { @MainActor in self?.refreshWireless() }
         }
     }
 
-    func stop() { timer?.invalidate(); timer = nil }
-
-    // MARK: – Static info (IP, Wi-Fi)
-
-    private func refreshStaticInfo() {
-        guard let ifName = Self.primaryInterfaceName() else {
-            localIP = nil; ssid = nil; isWiFi = false; signalBars = 0
-            return
-        }
-        localIP = Self.ipv4Address(for: ifName)
-
-        // rssiValue() still reports signal strength even when the SSID string
-        // is withheld by the system (e.g. Location Services not granted),
-        // so use it — not the SSID — to detect an active Wi-Fi link.
-        if let wifi = CWWiFiClient.shared().interface(), wifi.interfaceName == ifName {
-            let rssi = wifi.rssiValue()
-            isWiFi = rssi != 0
-            ssid = isWiFi ? wifi.ssid() : nil
-            signalBars = isWiFi ? Self.bars(forRSSI: rssi) : 0
-        } else {
-            ssid = nil
-            isWiFi = false
-            signalBars = 0
-        }
+    func stop() {
+        throughputTimer?.invalidate(); throughputTimer = nil
+        wirelessTimer?.invalidate();   wirelessTimer = nil
     }
 
-    // MARK: – Throughput
+    // MARK: – Throughput and address
 
-    private func sampleThroughput() {
-        guard let ifName = Self.primaryInterfaceName(),
-              let counters = Self.byteCounters(for: ifName)
+    private func sample() {
+        guard let ifName = primaryInterfaceName(),
+              let stats = Self.interfaceStats(for: ifName)
         else {
             downKBps = 0; upKBps = 0
+            localIP = nil
             lastBytes = nil; lastSampleDate = nil
             return
         }
+
+        localIP = stats.ip
 
         let now = Date()
         if let last = lastBytes, let lastDate = lastSampleDate {
             let dt = now.timeIntervalSince(lastDate)
             if dt > 0 {
-                downKBps = Double(counters.in &- last.in) / 1024 / dt
-                upKBps   = Double(counters.out &- last.out) / 1024 / dt
+                downKBps = Double(stats.counters.in &- last.in) / 1024 / dt
+                upKBps   = Double(stats.counters.out &- last.out) / 1024 / dt
             }
         }
-        lastBytes = counters
+        lastBytes = stats.counters
         lastSampleDate = now
+    }
+
+    // MARK: – Wi-Fi
+
+    private func refreshWireless() {
+        guard let ifName = primaryInterfaceName(),
+              let wifi = CWWiFiClient.shared().interface(),
+              wifi.interfaceName == ifName
+        else {
+            ssid = nil; isWiFi = false; signalBars = 0
+            return
+        }
+
+        // rssiValue() still reports signal strength even when the SSID string
+        // is withheld by the system (e.g. Location Services not granted),
+        // so use it — not the SSID — to detect an active Wi-Fi link.
+        let rssi = wifi.rssiValue()
+        isWiFi = rssi != 0
+        ssid = isWiFi ? wifi.ssid() : nil
+        signalBars = isWiFi ? Self.bars(forRSSI: rssi) : 0
     }
 
     // MARK: – System lookups
 
-    private static func primaryInterfaceName() -> String? {
-        guard let store = SCDynamicStoreCreate(nil, "MenuDeck" as CFString, nil, nil),
+    private func primaryInterfaceName() -> String? {
+        guard let store,
               let global = SCDynamicStoreCopyValue(store, "State:/Network/Global/IPv4" as CFString) as? [String: Any],
               let name = global["PrimaryInterface"] as? String
         else { return nil }
         return name
     }
 
-    private static func ipv4Address(for interfaceName: String) -> String? {
+    /// One getifaddrs walk for both the address (AF_INET) and the byte counters
+    /// (AF_LINK). These used to be two independent walks per tick.
+    private static func interfaceStats(
+        for interfaceName: String
+    ) -> (ip: String?, counters: (in: UInt64, out: UInt64))? {
         var ifaddrPtr: UnsafeMutablePointer<ifaddrs>?
-        guard getifaddrs(&ifaddrPtr) == 0, let first = ifaddrPtr else { return nil }
+        guard getifaddrs(&ifaddrPtr) == 0 else { return nil }
         defer { freeifaddrs(ifaddrPtr) }
 
-        var ptr: UnsafeMutablePointer<ifaddrs>? = first
+        var ip: String?
+        var counters: (in: UInt64, out: UInt64)?
+
+        var ptr = ifaddrPtr
         while let p = ptr {
             let interface = p.pointee
             ptr = interface.ifa_next
+
             guard String(cString: interface.ifa_name) == interfaceName,
-                  interface.ifa_addr.pointee.sa_family == UInt8(AF_INET)
+                  let addr = interface.ifa_addr
             else { continue }
 
-            var host = [CChar](repeating: 0, count: Int(NI_MAXHOST))
-            getnameinfo(interface.ifa_addr, socklen_t(interface.ifa_addr.pointee.sa_len),
-                        &host, socklen_t(host.count), nil, 0, NI_NUMERICHOST)
-            return host.withUnsafeBufferPointer { String(cString: $0.baseAddress!) }
+            switch Int32(addr.pointee.sa_family) {
+            case AF_INET where ip == nil:
+                var host = [CChar](repeating: 0, count: Int(NI_MAXHOST))
+                getnameinfo(addr, socklen_t(addr.pointee.sa_len),
+                            &host, socklen_t(host.count), nil, 0, NI_NUMERICHOST)
+                ip = host.withUnsafeBufferPointer { String(cString: $0.baseAddress!) }
+
+            case AF_LINK where counters == nil:
+                guard let dataPtr = interface.ifa_data else { continue }
+                let data = dataPtr.withMemoryRebound(to: if_data.self, capacity: 1) { $0.pointee }
+                counters = (UInt64(data.ifi_ibytes), UInt64(data.ifi_obytes))
+
+            default:
+                continue
+            }
         }
-        return nil
-    }
 
-    private static func byteCounters(for interfaceName: String) -> (in: UInt64, out: UInt64)? {
-        var ifaddrPtr: UnsafeMutablePointer<ifaddrs>?
-        guard getifaddrs(&ifaddrPtr) == 0, let first = ifaddrPtr else { return nil }
-        defer { freeifaddrs(ifaddrPtr) }
-
-        var ptr: UnsafeMutablePointer<ifaddrs>? = first
-        while let p = ptr {
-            let interface = p.pointee
-            ptr = interface.ifa_next
-            guard String(cString: interface.ifa_name) == interfaceName,
-                  interface.ifa_addr.pointee.sa_family == UInt8(AF_LINK),
-                  let dataPtr = interface.ifa_data
-            else { continue }
-
-            let data = dataPtr.withMemoryRebound(to: if_data.self, capacity: 1) { $0.pointee }
-            return (UInt64(data.ifi_ibytes), UInt64(data.ifi_obytes))
-        }
-        return nil
+        guard let counters else { return nil }
+        return (ip, counters)
     }
 
     private static func bars(forRSSI rssi: Int) -> Int {

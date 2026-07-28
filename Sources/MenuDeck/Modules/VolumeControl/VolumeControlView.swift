@@ -110,7 +110,7 @@ struct AppVolumeRow: View {
     private var appIcon: some View {
         ZStack(alignment: .bottomTrailing) {
             ZStack {
-                if let icon = resolvedIcon(for: app) {
+                if let icon = app.icon {
                     Image(nsImage: icon)
                         .resizable()
                         .scaledToFit()
@@ -197,40 +197,4 @@ struct AppVolumeRow: View {
         .padding(.bottom, 8)
     }
 
-    private func resolvedIcon(for app: AudioApp) -> NSImage? {
-        let ownApp = NSRunningApplication(processIdentifier: app.pid)
-        let regular = NSWorkspace.shared.runningApplications.filter { $0.activationPolicy == .regular }
-
-        // 1. It IS a regular app — use its icon directly.
-        if ownApp?.activationPolicy == .regular { return ownApp?.icon }
-
-        // 2. Exact name match among regular apps.
-        if let m = regular.first(where: { $0.localizedName == app.name }) { return m.icon }
-
-        // 3. Bundle ID prefix: strip components from the right until we hit a regular app.
-        //    e.g. "com.apple.WebKit.GPU" → try "com.apple.WebKit" → "com.apple" (skip, too generic)
-        if let bid = ownApp?.bundleIdentifier {
-            var parts = bid.components(separatedBy: ".")
-            while parts.count > 2 {
-                parts.removeLast()
-                let prefix = parts.joined(separator: ".")
-                if let m = regular.first(where: { $0.bundleIdentifier == prefix }) { return m.icon }
-            }
-        }
-
-        // 4. Name-word prefix: "Safari Graphics and Audio Process" → try "Safari Graphics and",
-        //    "Safari Graphics", "Safari" — stops at the first match with a regular app.
-        //    Handles Chrome helpers ("Google Chrome Helper" → "Google Chrome"), etc.
-        let words = app.name.components(separatedBy: " ").filter { !$0.isEmpty }
-        for n in stride(from: words.count, through: 1, by: -1) {
-            let candidate = words.prefix(n).joined(separator: " ")
-            guard candidate.count >= 3 else { break }
-            if let m = regular.first(where: {
-                $0.localizedName == candidate ||
-                $0.localizedName?.hasPrefix(candidate + " ") == true
-            }) { return m.icon }
-        }
-
-        return ownApp?.icon
-    }
 }

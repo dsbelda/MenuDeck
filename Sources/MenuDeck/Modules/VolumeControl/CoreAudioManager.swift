@@ -12,6 +12,7 @@ struct AudioApp: Identifiable {
     var isMuted: Bool
     var isControlled: Bool   // PerAppController active
     var controlError: String?
+    var icon: NSImage?
 }
 
 // MARK: - Manager (singleton – controllers survive popover close)
@@ -171,7 +172,59 @@ final class CoreAudioManager: ObservableObject {
                 byName[app.name] = app
             }
         }
-        return byName.values.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        let sorted = byName.values.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        return attachIcons(to: sorted)
+    }
+
+    // MARK: – Icons
+
+    /// Resolving an icon scans every running application, so it happens once
+    /// per refresh here rather than once per row per frame from the view's
+    /// body — which is where it used to run, including mid slider drag.
+    private func attachIcons(to apps: [AudioApp]) -> [AudioApp] {
+        let regular = NSWorkspace.shared.runningApplications
+            .filter { $0.activationPolicy == .regular }
+        return apps.map { app in
+            var a = app
+            a.icon = Self.icon(for: app, among: regular)
+            return a
+        }
+    }
+
+    private static func icon(for app: AudioApp, among regular: [NSRunningApplication]) -> NSImage? {
+        let ownApp = NSRunningApplication(processIdentifier: app.pid)
+
+        // 1. It IS a regular app — use its icon directly.
+        if ownApp?.activationPolicy == .regular { return ownApp?.icon }
+
+        // 2. Exact name match among regular apps.
+        if let m = regular.first(where: { $0.localizedName == app.name }) { return m.icon }
+
+        // 3. Bundle ID prefix: strip components from the right until we hit a regular app.
+        //    e.g. "com.apple.WebKit.GPU" → try "com.apple.WebKit" → "com.apple" (skip, too generic)
+        if let bid = ownApp?.bundleIdentifier {
+            var parts = bid.components(separatedBy: ".")
+            while parts.count > 2 {
+                parts.removeLast()
+                let prefix = parts.joined(separator: ".")
+                if let m = regular.first(where: { $0.bundleIdentifier == prefix }) { return m.icon }
+            }
+        }
+
+        // 4. Name-word prefix: "Safari Graphics and Audio Process" → try "Safari Graphics and",
+        //    "Safari Graphics", "Safari" — stops at the first match with a regular app.
+        //    Handles Chrome helpers ("Google Chrome Helper" → "Google Chrome"), etc.
+        let words = app.name.components(separatedBy: " ").filter { !$0.isEmpty }
+        for n in stride(from: words.count, through: 1, by: -1) {
+            let candidate = words.prefix(n).joined(separator: " ")
+            guard candidate.count >= 3 else { break }
+            if let m = regular.first(where: {
+                $0.localizedName == candidate ||
+                $0.localizedName?.hasPrefix(candidate + " ") == true
+            }) { return m.icon }
+        }
+
+        return ownApp?.icon
     }
 
     private func buildApp(objectID: AudioObjectID) -> AudioApp? {
@@ -184,7 +237,8 @@ final class CoreAudioManager: ObservableObject {
         guard running || isUserApp else { return nil }
 
         return AudioApp(id: objectID, pid: pid, name: name,
-                        volume: 1, isMuted: false, isControlled: false, controlError: nil)
+                        volume: 1, isMuted: false, isControlled: false,
+                        controlError: nil, icon: nil)
     }
 
     // MARK: – CoreAudio helpers
