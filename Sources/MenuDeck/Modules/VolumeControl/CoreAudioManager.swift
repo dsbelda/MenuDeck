@@ -27,23 +27,47 @@ final class CoreAudioManager: ObservableObject {
     /// triggers the system's permission prompt.
     @Published var lastPermissionError: String?
 
-    private var controllers: [AudioObjectID: PerAppController] = [:]
+    /// A tap plus its aggregate device, and the process they belong to.
+    private struct ActiveControl {
+        let controller: PerAppController
+        let pid: pid_t
+    }
 
-    private init() {}
+    private var controls: [AudioObjectID: ActiveControl] = [:]
+
+    private init() {
+        NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didTerminateApplicationNotification,
+            object: nil, queue: .main
+        ) { [weak self] note in
+            guard let app = note.userInfo?[NSWorkspace.applicationUserInfoKey]
+                    as? NSRunningApplication else { return }
+            let pid = app.processIdentifier
+            Task { @MainActor in self?.releaseControls(forPID: pid) }
+        }
+    }
 
     // MARK: – Public
 
     func refresh() {
         let fresh = fetchAudioApps()
+        reapControls(keeping: Set(fresh.map(\.id)))
         apps = fresh.map { app in
             var a = app
-            if let ctrl = controllers[app.id] {
+            if let control = controls[app.id] {
                 a.isControlled = true
-                a.volume       = ctrl.volume
-                a.isMuted      = ctrl.isMuted
+                a.volume       = control.controller.volume
+                a.isMuted      = control.controller.isMuted
             }
             return a
         }
+    }
+
+    /// Taps and aggregate devices live in coreaudiod, so quitting without this
+    /// leaves them registered until the daemon restarts.
+    func shutdown() {
+        for control in controls.values { control.controller.deactivate() }
+        controls.removeAll()
     }
 
     func openPrivacySettings() {
@@ -73,12 +97,12 @@ final class CoreAudioManager: ObservableObject {
     /// Capture" system prompt (no public API exists to pre-check this).
     @discardableResult
     private func ensureController(for app: AudioApp) -> PerAppController? {
-        if let existing = controllers[app.id] { return existing }
+        if let existing = controls[app.id] { return existing.controller }
 
         let ctrl = PerAppController()
         do {
             try ctrl.activate(objectID: app.id, name: app.name)
-            controllers[app.id] = ctrl
+            controls[app.id] = ActiveControl(controller: ctrl, pid: app.pid)
             mutate(app.id) { $0.isControlled = true; $0.controlError = nil }
             lastPermissionError = nil
             return ctrl
@@ -87,6 +111,25 @@ final class CoreAudioManager: ObservableObject {
             mutate(app.id) { $0.controlError = msg }
             lastPermissionError = msg
             return nil
+        }
+    }
+
+    private func releaseControls(forPID pid: pid_t) {
+        let stale = controls.filter { $0.value.pid == pid }.map(\.key)
+        guard !stale.isEmpty else { return }
+        for id in stale {
+            controls[id]?.controller.deactivate()
+            controls.removeValue(forKey: id)
+        }
+        refresh()
+    }
+
+    /// Helper processes vanish without an NSWorkspace notification — and helpers
+    /// are exactly what this module ends up tapping.
+    private func reapControls(keeping live: Set<AudioObjectID>) {
+        for id in controls.keys where !live.contains(id) {
+            controls[id]?.controller.deactivate()
+            controls.removeValue(forKey: id)
         }
     }
 

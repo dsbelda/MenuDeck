@@ -201,7 +201,7 @@ struct MenuDeckPopoverView: View {
                         .font(.system(size: 12))
                         .foregroundStyle(.secondary)
                     Spacer()
-                    Text("1.0")
+                    Text(Self.appVersion)
                         .font(.system(size: 12, design: .monospaced))
                         .foregroundStyle(.quaternary)
                 }
@@ -221,6 +221,9 @@ struct MenuDeckPopoverView: View {
         }
         .frame(width: 320)
     }
+
+    private static let appVersion =
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
 
     private func sectionLabel(_ text: String) -> some View {
         Text(text)
