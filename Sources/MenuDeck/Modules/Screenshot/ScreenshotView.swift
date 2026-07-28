@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ScreenshotView: View {
-    @StateObject private var manager = ScreenshotManager()
+    @ObservedObject private var manager = ScreenshotManager.shared
     @State private var target: ScreenshotManager.SaveTarget = .desktop
     @State private var delay: Int = 0
 
@@ -82,50 +82,67 @@ struct ScreenshotView: View {
 
     @ViewBuilder
     private var feedbackRow: some View {
-        if let err = manager.lastError {
-            HStack(spacing: 6) {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.orange)
-                    .symbolRenderingMode(.multicolor)
-                Text(err)
+        switch manager.lastResult {
+        case .none:
+            EmptyView()
+
+        case .cancelled:
+            feedback(icon: "exclamationmark.triangle.fill", tint: .orange) {
+                Text("Captura cancelada")
                     .font(.system(size: 10))
                     .foregroundStyle(.secondary)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 14)
-            .padding(.bottom, 8)
-            .transition(.opacity)
-        } else if let path = manager.lastCapturePath {
-            HStack(spacing: 6) {
-                Image(systemName: "checkmark.circle.fill")
+
+        case .failed(let message):
+            feedback(icon: "exclamationmark.triangle.fill", tint: .orange) {
+                Text(message)
                     .font(.system(size: 10))
-                    .foregroundStyle(.green)
-                Text(path == "Portapapeles"
-                     ? "Copiado al portapapeles"
-                     : path.components(separatedBy: "/").last ?? path)
+                    .foregroundStyle(.secondary)
+            }
+
+        case .clipboard:
+            feedback(icon: "checkmark.circle.fill", tint: .green) {
+                Text("Copiado al portapapeles")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.secondary)
+            }
+
+        case .file(let url):
+            feedback(icon: "checkmark.circle.fill", tint: .green) {
+                Text(url.lastPathComponent)
                     .font(.system(size: 10, design: .monospaced))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)
                 Spacer()
-                if path != "Portapapeles" {
-                    Button {
-                        NSWorkspace.shared.selectFile(path, inFileViewerRootedAtPath: "")
-                    } label: {
-                        Image(systemName: "arrow.right.circle")
-                            .font(.system(size: 12))
-                            .foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.plain)
-                    .help("Mostrar en Finder")
+                Button {
+                    NSWorkspace.shared.activateFileViewerSelecting([url])
+                } label: {
+                    Image(systemName: "arrow.right.circle")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
                 }
+                .buttonStyle(.plain)
+                .help("Mostrar en Finder")
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 14)
-            .padding(.bottom, 8)
-            .transition(.opacity)
         }
+    }
+
+    private func feedback<C: View>(
+        icon: String,
+        tint: Color,
+        @ViewBuilder content: () -> C
+    ) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 10))
+                .foregroundStyle(tint)
+            content()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 14)
+        .padding(.bottom, 8)
+        .transition(.opacity)
     }
 }
 

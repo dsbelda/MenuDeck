@@ -5,8 +5,12 @@ extension Notification.Name {
     static let menuDeckClosePopover = Notification.Name("com.menudeck.closePopover")
 }
 
+// MARK: - Manager (singleton – the popover is dismissed before the capture even
+// starts, so the result has to outlive the view that asked for it)
+
 @MainActor
 final class ScreenshotManager: ObservableObject {
+    static let shared = ScreenshotManager()
 
     enum CaptureMode {
         case fullScreen, area, window
@@ -16,13 +20,27 @@ final class ScreenshotManager: ObservableObject {
         case desktop, clipboard
     }
 
-    @Published var lastCapturePath: String? = nil
-    @Published var isCapturing = false
-    @Published var lastError: String? = nil
+    enum CaptureResult {
+        case file(URL)
+        case clipboard
+        case cancelled
+        case failed(String)
+    }
+
+    @Published private(set) var lastResult: CaptureResult?
+    @Published private(set) var isCapturing = false
+
+    /// Because the popover is closed while capturing, the user never sees a
+    /// result land — they see it on the *next* open. Without an expiry that
+    /// means hours-old feedback presented as if it just happened.
+    private static let resultLifetime: Duration = .seconds(30)
+    private var expiryTask: Task<Void, Never>?
+
+    private init() {}
 
     func capture(mode: CaptureMode, target: SaveTarget, delay: Int) {
         isCapturing = true
-        lastError = nil
+        setResult(nil)
 
         // Signal MenuBarController to close the popover before capturing
         NotificationCenter.default.post(name: .menuDeckClosePopover, object: nil)
@@ -45,49 +63,73 @@ final class ScreenshotManager: ObservableObject {
 
         if delay > 0 { args += ["-T\(delay)"] }
 
-        let savedPath: String?
-        if target == .clipboard {
+        let destination: URL?
+        switch target {
+        case .clipboard:
             args.append("-c")
-            savedPath = nil
-        } else {
-            let path = desktopPath()
-            args.append(path)
-            savedPath = path
+            destination = nil
+        case .desktop:
+            guard let url = Self.desktopDestination() else {
+                finish(.failed("Could not locate the Desktop folder"))
+                return
+            }
+            args.append(url.path)
+            destination = url
         }
 
         let task = Process()
         task.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
         task.arguments = args
 
-        // Capture immutable copy for Sendable closure
-        let capturedPath = savedPath
         task.terminationHandler = { [weak self] process in
-            DispatchQueue.main.async {
-                guard let self else { return }
-                self.isCapturing = false
-                if process.terminationStatus == 0 {
-                    self.lastCapturePath = capturedPath ?? "Portapapeles"
-                    self.lastError = nil
-                } else {
-                    self.lastError = "Captura cancelada"
-                    self.lastCapturePath = nil
-                }
+            // screencapture exits non-zero when the user presses Esc
+            let succeeded = process.terminationStatus == 0
+            Task { @MainActor in
+                self?.finish(succeeded ? (destination.map { .file($0) } ?? .clipboard)
+                                       : .cancelled)
             }
         }
 
         do {
             try task.run()
         } catch {
-            isCapturing = false
-            lastError = error.localizedDescription
+            finish(.failed(error.localizedDescription))
         }
     }
 
-    private func desktopPath() -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd 'a las' HH.mm.ss"
-        let name = "Captura \(formatter.string(from: Date())).png"
-        let desktop = FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask).first!
-        return desktop.appendingPathComponent(name).path
+    private func finish(_ result: CaptureResult) {
+        isCapturing = false
+        setResult(result)
+    }
+
+    private func setResult(_ result: CaptureResult?) {
+        expiryTask?.cancel()
+        lastResult = result
+        guard result != nil else { return }
+        expiryTask = Task { [weak self] in
+            try? await Task.sleep(for: Self.resultLifetime)
+            guard !Task.isCancelled else { return }
+            self?.lastResult = nil
+        }
+    }
+
+    // MARK: – Destination
+
+    /// Filenames must not follow the UI language: a localized date pattern
+    /// gives every user a different sort order for the same folder.
+    private static let filenameFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM-dd 'at' HH.mm.ss"
+        return f
+    }()
+
+    private static func desktopDestination() -> URL? {
+        let fm = FileManager.default
+        let desktop = (try? fm.url(for: .desktopDirectory, in: .userDomainMask,
+                                   appropriateFor: nil, create: false))
+            ?? fm.homeDirectoryForCurrentUser.appending(path: "Desktop")
+        guard fm.fileExists(atPath: desktop.path) else { return nil }
+        return desktop.appending(path: "Screenshot \(filenameFormatter.string(from: Date())).png")
     }
 }

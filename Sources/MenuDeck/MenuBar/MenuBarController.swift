@@ -11,6 +11,7 @@ final class MenuBarController: NSObject {
 
     // Dynamic icon state
     private var displayTimer: Timer?
+    private var appliedMode: String?
     private lazy var smcReader = SMCManager()  // dedicated instance for menu bar reads
     private var cpuPrevTicks = [Int: (UInt32, UInt32, UInt32, UInt32)]()
 
@@ -30,9 +31,21 @@ final class MenuBarController: NSObject {
         )
         // Update icon immediately when user changes the setting
         NotificationCenter.default.addObserver(
-            self, selector: #selector(refreshDisplay),
+            self, selector: #selector(settingsDidChange),
             name: UserDefaults.didChangeNotification, object: nil
         )
+    }
+
+    /// didChangeNotification fires for every defaults write in the process —
+    /// including the com.apple.Metal HUD toggle — and refreshing means a
+    /// synchronous SMC read. Filter down to the one key the status item reads.
+    @objc private func settingsDidChange() {
+        guard currentMode != appliedMode else { return }
+        refreshDisplay()
+    }
+
+    private var currentMode: String {
+        UserDefaults.standard.string(forKey: "menudeck.menuBarMode") ?? "icon"
     }
 
     // MARK: – Setup
@@ -65,7 +78,8 @@ final class MenuBarController: NSObject {
     }
 
     @objc private func refreshDisplay() {
-        let mode = UserDefaults.standard.string(forKey: "menudeck.menuBarMode") ?? "icon"
+        let mode = currentMode
+        appliedMode = mode
         guard let button = statusItem.button else { return }
 
         switch mode {

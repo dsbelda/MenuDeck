@@ -8,4 +8,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.accessory)
         menuBarController = MenuBarController()
     }
+
+    // Process taps and aggregate devices are registered with coreaudiod, not
+    // owned by our address space — without this they outlive the app.
+    func applicationWillTerminate(_ notification: Notification) {
+        CoreAudioManager.shared.shutdown()
+    }
 }
