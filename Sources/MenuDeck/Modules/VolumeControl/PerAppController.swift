@@ -13,11 +13,11 @@ enum ControllerError: Error, LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .tapFailed(let s):     return "Process tap failed (\(s)). First use should trigger a system permission prompt — check Privacy & Security → Audio Capture."
-        case .formatUnavailable:    return "Could not read tap audio format."
-        case .aggregateFailed(let s): return "Aggregate device failed (\(s))."
-        case .ioProcFailed(let s):  return "I/O proc setup failed (\(s))."
-        case .startFailed(let s):   return "Device start failed (\(s))."
+        case .tapFailed(let s):       return String(localized: "Process tap failed (\(s)). First use should trigger a system permission prompt — check Privacy & Security → Audio Capture.")
+        case .formatUnavailable:      return String(localized: "Could not read tap audio format.")
+        case .aggregateFailed(let s): return String(localized: "Aggregate device failed (\(s)).")
+        case .ioProcFailed(let s):    return String(localized: "I/O proc setup failed (\(s)).")
+        case .startFailed(let s):     return String(localized: "Device start failed (\(s)).")
         }
     }
 }

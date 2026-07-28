@@ -19,7 +19,7 @@ struct FPSView: View {
     private var stat: some View {
         HStack(alignment: .center, spacing: 0) {
             VStack(alignment: .leading, spacing: 3) {
-                Text("Uso de GPU")
+                Text("GPU usage")
                     .font(.system(size: 9, weight: .semibold))
                     .foregroundStyle(.tertiary)
                     .textCase(.uppercase)
@@ -53,9 +53,9 @@ struct FPSView: View {
     private var toggleRow: some View {
         Toggle(isOn: $mgr.hudEnabled) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("Mostrar FPS sobre los juegos")
+                Text("Show FPS over games")
                     .font(.system(size: 12, weight: .medium))
-                Text("Activa el HUD nativo de Metal")
+                Text("Enables Metal's built-in HUD")
                     .font(.system(size: 10))
                     .foregroundStyle(.tertiary)
             }
@@ -68,7 +68,7 @@ struct FPSView: View {
     }
 
     private var note: some View {
-        Text("Vuelve a abrir el juego para que aparezca. Solo funciona con apps que usan Metal.")
+        Text("Reopen the game for it to appear. Only works with apps that use Metal.")
             .font(.system(size: 9))
             .foregroundStyle(.tertiary)
             .fixedSize(horizontal: false, vertical: true)

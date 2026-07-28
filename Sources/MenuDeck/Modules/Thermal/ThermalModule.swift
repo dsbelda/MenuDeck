@@ -2,7 +2,7 @@ import SwiftUI
 
 final class ThermalModule: Module {
     let id = "thermal"
-    let name = "Temperatures"
+    let name: LocalizedStringResource = "Temperature"
     let sfSymbol = "thermometer.medium"
     let tintColor: Color = .orange
 

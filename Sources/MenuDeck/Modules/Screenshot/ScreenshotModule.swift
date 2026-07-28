@@ -2,7 +2,7 @@ import SwiftUI
 
 final class ScreenshotModule: Module {
     let id = "screenshot"
-    let name = "Capturas"
+    let name: LocalizedStringResource = "Screenshots"
     let sfSymbol = "camera.viewfinder"
     let tintColor: Color = .teal
 

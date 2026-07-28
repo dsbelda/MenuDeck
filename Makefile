@@ -24,6 +24,7 @@ bundle: build
 	cp $(BUILD_DIR)/$(APP_NAME) $(BUNDLE)/Contents/MacOS/
 	cp Info.plist $(BUNDLE)/Contents/
 	cp Sources/$(APP_NAME)/Assets/AppIcon.icns $(BUNDLE)/Contents/Resources/
+	cp -R Resources/en.lproj Resources/es.lproj $(BUNDLE)/Contents/Resources/
 	codesign --force --sign - --identifier $(BUNDLE_ID) $(BUNDLE)
 	@echo "✓ Bundle signed: $(BUNDLE)"
 
@@ -34,6 +35,7 @@ app: release
 	cp $(RELEASE_DIR)/$(APP_NAME) $(BUNDLE)/Contents/MacOS/
 	cp Info.plist $(BUNDLE)/Contents/
 	cp Sources/$(APP_NAME)/Assets/AppIcon.icns $(BUNDLE)/Contents/Resources/
+	cp -R Resources/en.lproj Resources/es.lproj $(BUNDLE)/Contents/Resources/
 	codesign --force --sign - --identifier $(BUNDLE_ID) $(BUNDLE)
 	@echo "✓ Release bundle signed: $(BUNDLE)"
 

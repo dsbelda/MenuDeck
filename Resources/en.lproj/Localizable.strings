@@ -1,0 +1,110 @@
+/* MenuDeck — English (development language).
+   Keys are the English source strings, so this file is an identity mapping.
+   It exists so English is a real localization: without an en.lproj the app
+   would not appear in System Settings' per-app language picker. */
+
+/* — Module tiles — */
+"Volume"        = "Volume";
+"Temperature"   = "Temperature";
+"Battery"       = "Battery";
+"CPU / RAM"     = "CPU / RAM";
+"FPS"           = "FPS";
+"Network"       = "Network";
+"Awake"         = "Awake";
+"Screenshots"   = "Screenshots";
+"Clipboard"     = "Clipboard";
+
+/* — Settings — */
+"General"           = "General";
+"Application"       = "Application";
+"Default module"    = "Default module";
+"None"              = "None";
+"Menu bar shows"    = "Menu bar shows";
+"RAM"               = "RAM";
+"App icon"          = "App icon";
+"Version"           = "Version";
+"Quit MenuDeck"     = "Quit MenuDeck";
+
+/* — Volume — */
+"Audio Capture needed"                          = "Audio Capture needed";
+"Settings → Privacy & Security → Audio Capture" = "Settings → Privacy & Security → Audio Capture";
+"Open"                                          = "Open";
+"No audio apps"                                 = "No audio apps";
+"Open an app and play something"                = "Open an app and play something";
+"muted"                                         = "muted";
+
+"Process tap failed (%d). First use should trigger a system permission prompt — check Privacy & Security → Audio Capture." = "Process tap failed (%d). First use should trigger a system permission prompt — check Privacy & Security → Audio Capture.";
+"Could not read tap audio format."   = "Could not read tap audio format.";
+"Aggregate device failed (%d)."      = "Aggregate device failed (%d).";
+"I/O proc setup failed (%d)."        = "I/O proc setup failed (%d).";
+"Device start failed (%d)."          = "Device start failed (%d).";
+
+/* — Temperature — */
+"CPU peak"                    = "CPU peak";
+"No sensor data"              = "No sensor data";
+"SMC unavailable"             = "SMC unavailable";
+"No temperature keys found"   = "No temperature keys found";
+"SMC Logs"                    = "SMC Logs";
+"System"                      = "System";
+"Normal"                      = "Normal";
+"Fair"                        = "Fair";
+"High"                        = "High";
+"Critical"                    = "Critical";
+"Unknown"                     = "Unknown";
+
+/* — Battery — */
+"Full in %@"    = "Full in %@";
+"Charged"       = "Charged";
+"%@ left"       = "%@ left";
+"Health"        = "Health";
+"Cycles"        = "Cycles";
+"Capacity"      = "Capacity";
+
+/* — CPU / RAM — */
+"Memory"    = "Memory";
+"In use"    = "In use";
+"Wired"     = "Wired";
+"Free"      = "Free";
+
+/* — FPS — */
+"GPU usage"                  = "GPU usage";
+"Show FPS over games"        = "Show FPS over games";
+"Enables Metal's built-in HUD" = "Enables Metal's built-in HUD";
+"Reopen the game for it to appear. Only works with apps that use Metal." = "Reopen the game for it to appear. Only works with apps that use Metal.";
+
+/* — Network — */
+"Down"      = "Down";
+"Up"        = "Up";
+"No Wi-Fi"  = "No Wi-Fi";
+"Offline"   = "Offline";
+
+/* — Awake — */
+"Keep the Mac awake"            = "Keep the Mac awake";
+"Prevents sleep and screen lock" = "Prevents sleep and screen lock";
+"Active indefinitely"           = "Active indefinitely";
+"Active · %@ left"              = "Active · %@ left";
+"Duration"                      = "Duration";
+"15 min"                        = "15 min";
+"30 min"                        = "30 min";
+"1 hour"                        = "1 hour";
+"2 hours"                       = "2 hours";
+"Indefinite"                    = "Indefinite";
+
+/* — Screenshots — */
+"Screen"        = "Screen";
+"Selection"     = "Selection";
+"Window"        = "Window";
+"Desktop"       = "Desktop";
+"No delay"      = "No delay";
+"3 s"           = "3 s";
+"5 s"           = "5 s";
+"10 s"          = "10 s";
+"Capture cancelled"     = "Capture cancelled";
+"Copied to clipboard"   = "Copied to clipboard";
+"Show in Finder"        = "Show in Finder";
+"Could not locate the Desktop folder" = "Could not locate the Desktop folder";
+
+/* — Clipboard — */
+"Clear all"                     = "Clear all";
+"No history yet"                = "No history yet";
+"Copy something to see it here" = "Copy something to see it here";

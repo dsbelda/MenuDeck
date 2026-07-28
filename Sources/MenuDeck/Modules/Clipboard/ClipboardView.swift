@@ -19,14 +19,16 @@ struct ClipboardView: View {
 
     private var toolbar: some View {
         HStack {
-            Text("\(mgr.history.count) elemento\(mgr.history.count == 1 ? "" : "s")")
+            // Pluralised via Localizable.stringsdict — splicing an "s" in
+            // only works for one language.
+            Text("\(mgr.history.count) items")
                 .font(.system(size: 10, weight: .medium))
                 .foregroundStyle(.tertiary)
             Spacer()
             Button {
                 withAnimation(.spring(response: 0.3)) { mgr.clear() }
             } label: {
-                Text("Borrar todo")
+                Text("Clear all")
                     .font(.system(size: 10, weight: .medium))
                     .foregroundStyle(.pink)
             }
@@ -74,10 +76,10 @@ struct ClipboardView: View {
                 .font(.system(size: 28, weight: .light))
                 .foregroundStyle(.tertiary)
                 .symbolRenderingMode(.hierarchical)
-            Text("Historial vacío")
+            Text("No history yet")
                 .font(.system(size: 12, weight: .medium, design: .rounded))
                 .foregroundStyle(.secondary)
-            Text("Copia algo para verlo aquí")
+            Text("Copy something to see it here")
                 .font(.system(size: 10))
                 .foregroundStyle(.tertiary)
         }

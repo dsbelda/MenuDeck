@@ -52,7 +52,7 @@ struct BatteryView: View {
                     .font(.system(size: 10))
                     .foregroundStyle(.green)
                 if let t = mgr.timeString {
-                    Text("Lleno en \(t)")
+                    Text("Full in \(t)")
                         .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(.secondary)
                 }
@@ -60,14 +60,14 @@ struct BatteryView: View {
                 Image(systemName: "powerplug.fill")
                     .font(.system(size: 10))
                     .foregroundStyle(.secondary)
-                Text("Cargado")
+                Text("Charged")
                     .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(.secondary)
             } else if let t = mgr.timeString {
                 Image(systemName: "clock")
                     .font(.system(size: 10))
                     .foregroundStyle(.secondary)
-                Text("\(t) restantes")
+                Text("\(t) left")
                     .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(.secondary)
             }
@@ -80,21 +80,21 @@ struct BatteryView: View {
         HStack(spacing: 0) {
             statCell(
                 icon: "heart.fill",
-                label: "Salud",
+                label: "Health",
                 value: mgr.healthPercent.map { "\($0)%" } ?? "—",
                 color: healthColor
             )
             Divider().frame(height: 40).opacity(0.12)
             statCell(
                 icon: "arrow.clockwise",
-                label: "Ciclos",
+                label: "Cycles",
                 value: mgr.cycleCount.map { "\($0)" } ?? "—",
                 color: .secondary
             )
             Divider().frame(height: 40).opacity(0.12)
             statCell(
                 icon: "bolt.horizontal.fill",
-                label: "Capacidad",
+                label: "Capacity",
                 value: capacityString,
                 color: .secondary
             )
@@ -102,7 +102,7 @@ struct BatteryView: View {
         .padding(.vertical, 12)
     }
 
-    private func statCell(icon: String, label: String, value: String, color: Color) -> some View {
+    private func statCell(icon: String, label: LocalizedStringKey, value: String, color: Color) -> some View {
         VStack(spacing: 4) {
             HStack(spacing: 4) {
                 Image(systemName: icon)

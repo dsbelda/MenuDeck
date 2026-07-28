@@ -178,9 +178,9 @@ struct MenuDeckPopoverView: View {
             VStack(alignment: .leading, spacing: 18) {
                 sectionLabel("General")
 
-                SettingsRow(label: "Módulo por defecto", icon: "square.grid.2x2") {
+                SettingsRow(label: "Default module", icon: "square.grid.2x2") {
                     Picker("", selection: $defaultModuleId) {
-                        Text("Ninguno").tag("")
+                        Text("None").tag("")
                         ForEach(allModules, id: \.id) { mod in
                             Label(mod.name, systemImage: mod.sfSymbol).tag(mod.id)
                         }
@@ -190,11 +190,11 @@ struct MenuDeckPopoverView: View {
                     .controlSize(.small)
                 }
 
-                SettingsRow(label: "Icono de barra", icon: "menubar.rectangle") {
+                SettingsRow(label: "Menu bar shows", icon: "menubar.rectangle") {
                     Picker("", selection: $menuBarMode) {
-                        Label("Icono",        systemImage: "hand.grip").tag("icon")
-                        Label("Temperatura",  systemImage: "thermometer.medium").tag("temp")
-                        Label("Batería",      systemImage: "battery.75").tag("battery")
+                        Label("App icon",     systemImage: "hand.grip").tag("icon")
+                        Label("Temperature",  systemImage: "thermometer.medium").tag("temp")
+                        Label("Battery",      systemImage: "battery.75").tag("battery")
                         Label("CPU",          systemImage: "cpu").tag("cpu")
                         Label("RAM",          systemImage: "memorychip").tag("memory")
                     }
@@ -205,10 +205,10 @@ struct MenuDeckPopoverView: View {
 
                 Divider().opacity(0.07)
 
-                sectionLabel("Aplicación")
+                sectionLabel("Application")
 
                 HStack {
-                    Text("Versión")
+                    Text("Version")
                         .font(.system(size: 12))
                         .foregroundStyle(.secondary)
                     Spacer()
@@ -221,7 +221,7 @@ struct MenuDeckPopoverView: View {
                 Button(role: .destructive) {
                     NSApplication.shared.terminate(nil)
                 } label: {
-                    Label("Salir de MenuDeck", systemImage: "power")
+                    Label("Quit MenuDeck", systemImage: "power")
                         .font(.system(size: 12, weight: .medium))
                         .frame(maxWidth: .infinity)
                 }
@@ -236,7 +236,7 @@ struct MenuDeckPopoverView: View {
     private static let appVersion =
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
 
-    private func sectionLabel(_ text: String) -> some View {
+    private func sectionLabel(_ text: LocalizedStringKey) -> some View {
         Text(text)
             .font(.system(size: 10, weight: .bold))
             .foregroundStyle(.tertiary)
@@ -289,7 +289,7 @@ private struct ModuleTile: View {
 // MARK: – Settings Row helper
 
 private struct SettingsRow<C: View>: View {
-    let label: String
+    let label: LocalizedStringKey
     let icon: String
     @ViewBuilder let control: () -> C
 

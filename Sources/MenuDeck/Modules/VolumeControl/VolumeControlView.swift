@@ -37,7 +37,7 @@ struct VolumeControlView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Audio Capture needed")
                     .font(.system(size: 11, weight: .semibold))
-                Text("Settings → Privacy → Audio Capture")
+                Text("Settings → Privacy & Security → Audio Capture")
                     .font(.system(size: 10))
                     .foregroundStyle(.secondary)
             }
@@ -144,7 +144,7 @@ struct AppVolumeRow: View {
     }
 
     private var volumePill: some View {
-        Text(app.isMuted ? "muted" : "\(Int(app.volume * 100))%")
+        Text(app.isMuted ? String(localized: "muted") : "\(Int(app.volume * 100))%")
             .font(.system(size: 11, weight: .semibold).monospacedDigit())
             .foregroundStyle(app.isMuted ? .red : .secondary)
             .padding(.horizontal, 8)

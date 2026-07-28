@@ -2,7 +2,7 @@ import SwiftUI
 
 final class CPUModule: Module {
     let id = "cpu"
-    let name = "CPU / RAM"
+    let name: LocalizedStringResource = "CPU / RAM"
     let sfSymbol = "cpu"
     let tintColor: Color = .indigo
 
