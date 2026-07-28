@@ -8,6 +8,7 @@ let package = Package(
         .executableTarget(
             name: "Clutch",
             path: "Sources/Clutch",
+            exclude: ["Assets/AppIcon.icns"],
             resources: [.copy("Assets/AppIcon.png")]
         )
     ]

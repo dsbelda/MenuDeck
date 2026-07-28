@@ -8,6 +8,9 @@ private let allModules: [any Module] = [
     ThermalModule(),
     BatteryModule(),
     CPUModule(),
+    FPSModule(),
+    NetworkModule(),
+    CaffeineModule(),
     ScreenshotModule(),
     ClipboardModule(),
 ]
