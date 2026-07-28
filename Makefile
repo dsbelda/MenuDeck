@@ -14,22 +14,27 @@ release:
 
 # Builds a real, signed .app bundle — required for TCC (permission) prompts
 # like Audio Capture to work and persist across launches.
+#
+# The bundle is wiped first: copying into an existing one leaves stale binaries
+# behind, and codesign then seals whatever it finds next to ours.
 bundle: build
+	rm -rf $(BUNDLE)
 	mkdir -p $(BUNDLE)/Contents/MacOS
 	mkdir -p $(BUNDLE)/Contents/Resources
 	cp $(BUILD_DIR)/$(APP_NAME) $(BUNDLE)/Contents/MacOS/
 	cp Info.plist $(BUNDLE)/Contents/
 	cp Sources/$(APP_NAME)/Assets/AppIcon.icns $(BUNDLE)/Contents/Resources/
-	codesign --force --deep --sign - --identifier $(BUNDLE_ID) $(BUNDLE)
+	codesign --force --sign - --identifier $(BUNDLE_ID) $(BUNDLE)
 	@echo "✓ Bundle signed: $(BUNDLE)"
 
 app: release
+	rm -rf $(BUNDLE)
 	mkdir -p $(BUNDLE)/Contents/MacOS
 	mkdir -p $(BUNDLE)/Contents/Resources
 	cp $(RELEASE_DIR)/$(APP_NAME) $(BUNDLE)/Contents/MacOS/
 	cp Info.plist $(BUNDLE)/Contents/
 	cp Sources/$(APP_NAME)/Assets/AppIcon.icns $(BUNDLE)/Contents/Resources/
-	codesign --force --deep --sign - --identifier $(BUNDLE_ID) $(BUNDLE)
+	codesign --force --sign - --identifier $(BUNDLE_ID) $(BUNDLE)
 	@echo "✓ Release bundle signed: $(BUNDLE)"
 
 # Always run the signed .app bundle, never the raw binary —
@@ -39,6 +44,7 @@ run: bundle
 	open $(BUNDLE)
 
 install: app
+	rm -rf /Applications/$(BUNDLE)
 	cp -r $(BUNDLE) /Applications/
 	@echo "✓ Installed to /Applications/$(BUNDLE)"
 
