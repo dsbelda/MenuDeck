@@ -34,7 +34,7 @@ final class CaffeineManager: ObservableObject {
         let result = IOPMAssertionCreateWithName(
             kIOPMAssertionTypePreventUserIdleSystemSleep as CFString,
             IOPMAssertionLevel(kIOPMAssertionLevelOn),
-            "Clutch mantiene el Mac despierto" as CFString,
+            "MenuDeck mantiene el Mac despierto" as CFString,
             &id
         )
         guard result == kIOReturnSuccess else { isActive = false; return }

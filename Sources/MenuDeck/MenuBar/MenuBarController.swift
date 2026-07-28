@@ -7,7 +7,7 @@ import IOKit
 final class MenuBarController: NSObject {
     private var statusItem: NSStatusItem
     private var popover: NSPopover
-    private var hostingController: NSHostingController<ClutchPopoverView>
+    private var hostingController: NSHostingController<MenuDeckPopoverView>
 
     // Dynamic icon state
     private var displayTimer: Timer?
@@ -17,7 +17,7 @@ final class MenuBarController: NSObject {
     override init() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         popover = NSPopover()
-        hostingController = NSHostingController(rootView: ClutchPopoverView())
+        hostingController = NSHostingController(rootView: MenuDeckPopoverView())
         super.init()
 
         setupStatusItem()
@@ -26,7 +26,7 @@ final class MenuBarController: NSObject {
 
         NotificationCenter.default.addObserver(
             self, selector: #selector(closePopover),
-            name: .clutchClosePopover, object: nil
+            name: .menuDeckClosePopover, object: nil
         )
         // Update icon immediately when user changes the setting
         NotificationCenter.default.addObserver(
@@ -65,7 +65,7 @@ final class MenuBarController: NSObject {
     }
 
     @objc private func refreshDisplay() {
-        let mode = UserDefaults.standard.string(forKey: "clutch.menuBarMode") ?? "icon"
+        let mode = UserDefaults.standard.string(forKey: "menudeck.menuBarMode") ?? "icon"
         guard let button = statusItem.button else { return }
 
         switch mode {
@@ -107,7 +107,7 @@ final class MenuBarController: NSObject {
     private func applyIcon() {
         guard let button = statusItem.button else { return }
         button.attributedTitle = NSAttributedString(string: "")
-        button.image = ClutchGlyph.statusBarImage()
+        button.image = MenuDeckGlyph.statusBarImage()
     }
 
     // MARK: – Popover

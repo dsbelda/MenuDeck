@@ -79,7 +79,7 @@ final class NetworkManager: ObservableObject {
     // MARK: – System lookups
 
     private static func primaryInterfaceName() -> String? {
-        guard let store = SCDynamicStoreCreate(nil, "Clutch" as CFString, nil, nil),
+        guard let store = SCDynamicStoreCreate(nil, "MenuDeck" as CFString, nil, nil),
               let global = SCDynamicStoreCopyValue(store, "State:/Network/Global/IPv4" as CFString) as? [String: Any],
               let name = global["PrimaryInterface"] as? String
         else { return nil }

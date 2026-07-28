@@ -1,4 +1,4 @@
-# Clutch
+# MenuDeck
 
 **[English](README.md) | [Español](README.es.md)**
 
@@ -38,7 +38,7 @@ A modular macOS menu bar utility. Lives in the top-right corner of the screen an
 
 ## Running it
 
-Clutch is a Swift Package Manager project driven by a `Makefile`. It must run as a signed `.app` bundle (not the raw binary) — otherwise macOS won't grant or persist TCC permissions like Audio Capture.
+MenuDeck is a Swift Package Manager project driven by a `Makefile`. It must run as a signed `.app` bundle (not the raw binary) — otherwise macOS won't grant or persist TCC permissions like Audio Capture.
 
 ### Run in development
 
@@ -46,7 +46,7 @@ Clutch is a Swift Package Manager project driven by a `Makefile`. It must run as
 make run
 ```
 
-This builds a debug binary, wraps it into `Clutch.app`, ad-hoc code-signs it, kills any running instance, and reopens it.
+This builds a debug binary, wraps it into `MenuDeck.app`, ad-hoc code-signs it, kills any running instance, and reopens it.
 
 ### Build a release .app bundle
 
@@ -54,7 +54,7 @@ This builds a debug binary, wraps it into `Clutch.app`, ad-hoc code-signs it, ki
 make app
 ```
 
-Creates `Clutch.app` in the project folder (release configuration).
+Creates `MenuDeck.app` in the project folder (release configuration).
 
 ### Install to /Applications
 
@@ -62,7 +62,7 @@ Creates `Clutch.app` in the project folder (release configuration).
 make install
 ```
 
-Copies the release bundle to `/Applications/Clutch.app`. To launch it automatically on login: **System Settings → General → Login Items → add Clutch**.
+Copies the release bundle to `/Applications/MenuDeck.app`. To launch it automatically on login: **System Settings → General → Login Items → add MenuDeck**.
 
 ### Clean build artifacts
 
@@ -70,20 +70,20 @@ Copies the release bundle to `/Applications/Clutch.app`. To launch it automatica
 make clean
 ```
 
-Removes `.build/` and `Clutch.app`.
+Removes `.build/` and `MenuDeck.app`.
 
 ---
 
 ## Architecture
 
 ```
-Sources/Clutch/
+Sources/MenuDeck/
 ├── main.swift                       # NSApplication entry point
 ├── AppDelegate.swift                # Hides from Dock (LSUIElement)
 ├── MenuBar/
 │   └── MenuBarController.swift      # NSStatusItem + NSPopover
 ├── Views/
-│   ├── ClutchPopoverView.swift      # Root SwiftUI view (tile grid + settings)
+│   ├── MenuDeckPopoverView.swift      # Root SwiftUI view (tile grid + settings)
 │   └── ModuleSectionView.swift      # Collapsible section per module
 └── Modules/
     ├── Module.swift                 # Protocol every module conforms to
@@ -97,7 +97,7 @@ Sources/Clutch/
 
 ### Adding a new module
 
-1. Create `Sources/Clutch/Modules/MyModule/`
+1. Create `Sources/MenuDeck/Modules/MyModule/`
 2. Implement the `Module` protocol:
 
 ```swift
@@ -114,7 +114,7 @@ final class MyModule: Module {
 }
 ```
 
-3. Register it in `ClutchPopoverView.swift`:
+3. Register it in `MenuDeckPopoverView.swift`:
 
 ```swift
 private let allModules: [any Module] = [

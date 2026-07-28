@@ -50,7 +50,7 @@ final class PerAppController {
         // 1. Tap description — explicit UUID is required by the aggregate device later
         let tapDescription = CATapDescription(stereoMixdownOfProcesses: [objectID])
         tapDescription.uuid = UUID()
-        tapDescription.name = "Clutch.\(name)"
+        tapDescription.name = "MenuDeck.\(name)"
         tapDescription.muteBehavior = .muted   // original app is always silenced; we re-output ourselves
 
         var tap: AudioObjectID = .unknown
@@ -70,8 +70,8 @@ final class PerAppController {
         let outputUID = try readDeviceUID(outputDeviceID)
 
         let aggDescription: [String: Any] = [
-            kAudioAggregateDeviceNameKey: "Clutch.\(name)",
-            kAudioAggregateDeviceUIDKey: "com.clutch.agg.\(UUID().uuidString)",
+            kAudioAggregateDeviceNameKey: "MenuDeck.\(name)",
+            kAudioAggregateDeviceUIDKey: "com.menudeck.agg.\(UUID().uuidString)",
             kAudioAggregateDeviceMainSubDeviceKey: outputUID,
             kAudioAggregateDeviceIsPrivateKey: true,
             kAudioAggregateDeviceIsStackedKey: false,

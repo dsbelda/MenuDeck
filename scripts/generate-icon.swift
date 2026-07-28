@@ -1,11 +1,11 @@
 #!/usr/bin/env swift
 // Run with: swift scripts/generate-icon.swift
-// Generates AppIcon.png (1024x1024) in Sources/Clutch/Assets/
+// Generates AppIcon.png (1024x1024) in Sources/MenuDeck/Assets/
 
 import AppKit
 import CoreGraphics
 
-let outputDir = "Sources/Clutch/Assets"
+let outputDir = "Sources/MenuDeck/Assets"
 let outputPath = "\(outputDir)/AppIcon.png"
 
 // --- Canvas setup ---
@@ -42,7 +42,7 @@ cg.drawLinearGradient(gradient,
                        options: [])
 cg.resetClip()
 
-// --- Clutch mark: three parallel diagonal bars (grip texture) ---
+// --- MenuDeck mark: three parallel diagonal bars (grip texture) ---
 let contentSize = CGFloat(size) * 0.76
 let barLength = contentSize * 0.92
 let barThickness = contentSize * 0.20

@@ -15,9 +15,9 @@ private let allModules: [any Module] = [
     ClipboardModule(),
 ]
 
-struct ClutchPopoverView: View {
-    @AppStorage("clutch.defaultModuleId") private var defaultModuleId: String = ""
-    @AppStorage("clutch.menuBarMode")     private var menuBarMode:     String = "icon"
+struct MenuDeckPopoverView: View {
+    @AppStorage("menudeck.defaultModuleId") private var defaultModuleId: String = ""
+    @AppStorage("menudeck.menuBarMode")     private var menuBarMode:     String = "icon"
     @State private var expandedId: String? = nil
     @State private var screen: Screen = .main
 
@@ -60,7 +60,7 @@ struct ClutchPopoverView: View {
         HStack(spacing: 10) {
             appIcon
 
-            Text("Clutch")
+            Text("MenuDeck")
                 .font(.system(size: 16, weight: .bold, design: .rounded))
 
             Spacer()
@@ -108,7 +108,7 @@ struct ClutchPopoverView: View {
                 ))
                 .frame(width: 30, height: 30)
                 .shadow(color: .purple.opacity(0.35), radius: 6, y: 2)
-            ClutchGlyphView(color: .white)
+            MenuDeckGlyphView(color: .white)
                 .frame(width: 14, height: 14)
         }
     }
@@ -210,7 +210,7 @@ struct ClutchPopoverView: View {
                 Button(role: .destructive) {
                     NSApplication.shared.terminate(nil)
                 } label: {
-                    Label("Salir de Clutch", systemImage: "power")
+                    Label("Salir de MenuDeck", systemImage: "power")
                         .font(.system(size: 12, weight: .medium))
                         .frame(maxWidth: .infinity)
                 }

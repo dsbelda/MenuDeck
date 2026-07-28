@@ -1,10 +1,10 @@
 import AppKit
 import SwiftUI
 
-/// Clutch's brand mark: three parallel diagonal bars evoking a grip texture.
+/// MenuDeck's brand mark: three parallel diagonal bars evoking a grip texture.
 /// Drawn from scratch (rather than an SF Symbol) so it renders identically as
 /// an `NSImage` template in the menu bar and as a SwiftUI view in the popover.
-enum ClutchGlyph {
+enum MenuDeckGlyph {
     /// Draws the mark centered in `rect` into the current graphics context.
     static func draw(in rect: CGRect, color: NSColor) {
         let contentSize = min(rect.width, rect.height) * 0.76
@@ -41,7 +41,7 @@ enum ClutchGlyph {
 }
 
 /// SwiftUI wrapper for use in the popover header.
-struct ClutchGlyphView: View {
+struct MenuDeckGlyphView: View {
     var color: Color = .white
 
     var body: some View {
@@ -51,7 +51,7 @@ struct ClutchGlyphView: View {
             context.withCGContext { cg in
                 NSGraphicsContext.saveGraphicsState()
                 NSGraphicsContext.current = NSGraphicsContext(cgContext: cg, flipped: false)
-                ClutchGlyph.draw(in: rect, color: nsColor)
+                MenuDeckGlyph.draw(in: rect, color: nsColor)
                 NSGraphicsContext.restoreGraphicsState()
             }
         }
