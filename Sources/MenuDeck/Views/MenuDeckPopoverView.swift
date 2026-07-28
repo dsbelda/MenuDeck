@@ -115,6 +115,10 @@ struct MenuDeckPopoverView: View {
 
     // MARK: – Main panel (tiles + expanded content)
 
+    /// Tall enough for the dense modules (CPU cores, thermal sensors) without
+    /// leaving too much empty glass under the short ones.
+    private static let moduleHeight: CGFloat = 250
+
     private var mainPanel: some View {
         VStack(spacing: 0) {
             Divider().opacity(0.08)
@@ -124,10 +128,17 @@ struct MenuDeckPopoverView: View {
             if let id = expandedId,
                let mod = allModules.first(where: { $0.id == id }) {
                 Divider().opacity(0.08)
-                ScrollView(.vertical, showsIndicators: false) {
+                ScrollView(.vertical) {
                     mod.makeContent()
                 }
-                .frame(maxHeight: 290)
+                // A constant height, not a maximum. With .preferredContentSize
+                // the popover tracks its content, so a per-module height made
+                // it resize on every switch — and again whenever anything
+                // inside a module appeared (the thermal log panel, the audio
+                // permission banner), which happens outside any animation
+                // transaction and reads as a jump. Overflow now scrolls.
+                .frame(height: Self.moduleHeight, alignment: .top)
+                .scrollBounceBehavior(.basedOnSize)
                 .transition(.asymmetric(
                     insertion: .push(from: .top).combined(with: .opacity),
                     removal:   .move(edge: .top).combined(with: .opacity)
