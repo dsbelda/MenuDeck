@@ -21,13 +21,13 @@ struct ScreenshotView: View {
 
     private var captureButtons: some View {
         HStack(spacing: 8) {
-            CaptureButton(title: "Pantalla", icon: "display", tint: .teal) {
+            CaptureButton(title: "Screen", icon: "display", tint: .teal) {
                 manager.capture(mode: .fullScreen, target: target, delay: delay)
             }
-            CaptureButton(title: "Área", icon: "selection.pin.in.out", tint: .teal) {
+            CaptureButton(title: "Selection", icon: "selection.pin.in.out", tint: .teal) {
                 manager.capture(mode: .area, target: target, delay: delay)
             }
-            CaptureButton(title: "Ventana", icon: "macwindow", tint: .teal) {
+            CaptureButton(title: "Window", icon: "macwindow", tint: .teal) {
                 manager.capture(mode: .window, target: target, delay: delay)
             }
         }
@@ -47,8 +47,8 @@ struct ScreenshotView: View {
                     .foregroundStyle(.secondary)
                     .frame(width: 14)
                 Picker("", selection: $target) {
-                    Text("Escritorio").tag(ScreenshotManager.SaveTarget.desktop)
-                    Text("Portapapeles").tag(ScreenshotManager.SaveTarget.clipboard)
+                    Text("Desktop").tag(ScreenshotManager.SaveTarget.desktop)
+                    Text("Clipboard").tag(ScreenshotManager.SaveTarget.clipboard)
                 }
                 .labelsHidden()
                 .pickerStyle(.menu)
@@ -64,7 +64,7 @@ struct ScreenshotView: View {
                     .foregroundStyle(.secondary)
                     .frame(width: 14)
                 Picker("", selection: $delay) {
-                    Text("Sin retardo").tag(0)
+                    Text("No delay").tag(0)
                     Text("3 s").tag(3)
                     Text("5 s").tag(5)
                     Text("10 s").tag(10)
@@ -88,7 +88,7 @@ struct ScreenshotView: View {
 
         case .cancelled:
             feedback(icon: "exclamationmark.triangle.fill", tint: .orange) {
-                Text("Captura cancelada")
+                Text("Capture cancelled")
                     .font(.system(size: 10))
                     .foregroundStyle(.secondary)
             }
@@ -102,7 +102,7 @@ struct ScreenshotView: View {
 
         case .clipboard:
             feedback(icon: "checkmark.circle.fill", tint: .green) {
-                Text("Copiado al portapapeles")
+                Text("Copied to clipboard")
                     .font(.system(size: 10))
                     .foregroundStyle(.secondary)
             }
@@ -123,7 +123,7 @@ struct ScreenshotView: View {
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
-                .help("Mostrar en Finder")
+                .help("Show in Finder")
             }
         }
     }
@@ -149,7 +149,7 @@ struct ScreenshotView: View {
 // MARK: – Capture Button
 
 private struct CaptureButton: View {
-    let title: String
+    let title: LocalizedStringKey
     let icon: String
     let tint: Color
     let action: () -> Void

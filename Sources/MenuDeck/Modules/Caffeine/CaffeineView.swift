@@ -15,9 +15,9 @@ struct CaffeineView: View {
         HStack(alignment: .top) {
             Toggle(isOn: $mgr.isActive) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Mantener el Mac despierto")
+                    Text("Keep the Mac awake")
                         .font(.system(size: 12, weight: .medium))
-                    Text(mgr.isActive ? statusText : "Evita que se suspenda o bloquee la pantalla")
+                    Text(mgr.isActive ? statusText : String(localized: "Prevents sleep and screen lock"))
                         .font(.system(size: 10))
                         .foregroundStyle(.tertiary)
                 }
@@ -31,16 +31,20 @@ struct CaffeineView: View {
     }
 
     private var statusText: String {
-        guard let remaining = mgr.remainingSeconds else { return "Activo indefinidamente" }
+        guard let remaining = mgr.remainingSeconds else {
+            return String(localized: "Active indefinitely")
+        }
         let h = remaining / 3600, m = (remaining % 3600) / 60, s = remaining % 60
-        return h > 0
-            ? String(format: "Activo · %d:%02d:%02d restantes", h, m, s)
-            : String(format: "Activo · %d:%02d restantes", m, s)
+        // Formatted separately so the localized string carries one clock
+        // placeholder rather than three positional integers.
+        let clock = h > 0 ? String(format: "%d:%02d:%02d", h, m, s)
+                          : String(format: "%d:%02d", m, s)
+        return String(localized: "Active · \(clock) left")
     }
 
     private var durationPicker: some View {
         HStack {
-            Text("Duración")
+            Text("Duration")
                 .font(.system(size: 12, weight: .medium))
             Spacer()
             Picker("", selection: $mgr.selectedDurationIndex) {

@@ -169,7 +169,9 @@ struct ThermalView: View {
     private func sectionGroup(name: String, items: [TempReading]) -> some View {
         VStack(spacing: 0) {
             HStack {
-                Text(name)
+                // The group name doubles as the ForEach id, so it stays a
+                // String and gets looked up here.
+                Text(LocalizedStringKey(name))
                     .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(.secondary)
                     .textCase(.uppercase)
@@ -203,7 +205,7 @@ struct ThermalView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("SMC unavailable")
                     .font(.system(size: 12, weight: .semibold))
-                Text(vm.smcError ?? "No temperature keys found")
+                Text(vm.smcError ?? String(localized: "No temperature keys found"))
                     .font(.system(size: 10))
                     .foregroundStyle(.tertiary)
             }
@@ -235,7 +237,7 @@ struct ThermalView: View {
         }
     }
 
-    private func pressureLabel(_ state: ProcessInfo.ThermalState) -> String {
+    private func pressureLabel(_ state: ProcessInfo.ThermalState) -> LocalizedStringResource {
         switch state {
         case .nominal:    return "Normal"
         case .fair:       return "Fair"

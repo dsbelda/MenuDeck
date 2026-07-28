@@ -16,12 +16,12 @@ final class CaffeineManager: ObservableObject {
     @Published var remainingSeconds: Int? = nil
     @Published var selectedDurationIndex: Int = durations.count - 1  // "Indefinido" by default
 
-    static let durations: [(label: String, seconds: TimeInterval?)] = [
+    static let durations: [(label: LocalizedStringResource, seconds: TimeInterval?)] = [
         ("15 min", 15 * 60),
         ("30 min", 30 * 60),
-        ("1 hora", 60 * 60),
-        ("2 horas", 2 * 60 * 60),
-        ("Indefinido", nil),
+        ("1 hour", 60 * 60),
+        ("2 hours", 2 * 60 * 60),
+        ("Indefinite", nil),
     ]
 
     private var assertionID: IOPMAssertionID = 0
@@ -34,7 +34,7 @@ final class CaffeineManager: ObservableObject {
         let result = IOPMAssertionCreateWithName(
             kIOPMAssertionTypePreventUserIdleSystemSleep as CFString,
             IOPMAssertionLevel(kIOPMAssertionLevelOn),
-            "MenuDeck mantiene el Mac despierto" as CFString,
+            "MenuDeck is keeping the Mac awake" as CFString,
             &id
         )
         guard result == kIOReturnSuccess else { isActive = false; return }

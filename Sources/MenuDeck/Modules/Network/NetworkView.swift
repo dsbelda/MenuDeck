@@ -17,14 +17,14 @@ struct NetworkView: View {
 
     private var speeds: some View {
         HStack(spacing: 0) {
-            speedCell(icon: "arrow.down", label: "Bajada", value: mgr.downKBps)
+            speedCell(icon: "arrow.down", label: "Down", value: mgr.downKBps)
             Divider().frame(height: 40).opacity(0.12)
-            speedCell(icon: "arrow.up", label: "Subida", value: mgr.upKBps)
+            speedCell(icon: "arrow.up", label: "Up", value: mgr.upKBps)
         }
         .padding(.vertical, 14)
     }
 
-    private func speedCell(icon: String, label: String, value: Double) -> some View {
+    private func speedCell(icon: String, label: LocalizedStringKey, value: Double) -> some View {
         VStack(spacing: 4) {
             HStack(spacing: 4) {
                 Image(systemName: icon)
@@ -53,8 +53,8 @@ struct NetworkView: View {
 
     private var info: some View {
         VStack(spacing: 10) {
-            infoRow(icon: "wifi", value: mgr.isWiFi ? (mgr.ssid ?? "Wi-Fi") : "Sin Wi-Fi", showSignal: mgr.isWiFi)
-            infoRow(icon: "network", value: mgr.localIP ?? "Sin conexión", showSignal: false)
+            infoRow(icon: "wifi", value: mgr.isWiFi ? (mgr.ssid ?? "Wi-Fi") : String(localized: "No Wi-Fi"), showSignal: mgr.isWiFi)
+            infoRow(icon: "network", value: mgr.localIP ?? String(localized: "Offline"), showSignal: false)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)

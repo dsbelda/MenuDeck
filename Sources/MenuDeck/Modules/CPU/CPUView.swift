@@ -49,7 +49,7 @@ struct CPUView: View {
     private var memorySection: some View {
         VStack(spacing: 10) {
             HStack {
-                Label("Memoria", systemImage: "memorychip")
+                Label("Memory", systemImage: "memorychip")
                     .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(.secondary)
                     .textCase(.uppercase)
@@ -61,15 +61,15 @@ struct CPUView: View {
             }
 
             VStack(spacing: 5) {
-                MemBar(label: "En uso",
+                MemBar(label: "In use",
                        value: mgr.memory.appGB,
                        total: mgr.memory.totalGB,
                        color: .indigo)
-                MemBar(label: "Cableada",
+                MemBar(label: "Wired",
                        value: mgr.memory.wiredGB,
                        total: mgr.memory.totalGB,
                        color: .purple)
-                MemBar(label: "Libre",
+                MemBar(label: "Free",
                        value: mgr.memory.freeGB,
                        total: mgr.memory.totalGB,
                        color: .green)
@@ -125,7 +125,7 @@ private struct CoreBar: View {
 // MARK: – Memory Bar
 
 private struct MemBar: View {
-    let label: String
+    let label: LocalizedStringKey
     let value: Double
     let total: Double
     let color: Color

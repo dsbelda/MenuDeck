@@ -70,7 +70,7 @@ final class ScreenshotManager: ObservableObject {
             destination = nil
         case .desktop:
             guard let url = Self.desktopDestination() else {
-                finish(.failed("Could not locate the Desktop folder"))
+                finish(.failed(String(localized: "Could not locate the Desktop folder")))
                 return
             }
             args.append(url.path)

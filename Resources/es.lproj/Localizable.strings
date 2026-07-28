@@ -1,0 +1,107 @@
+/* MenuDeck — Español */
+
+/* — Teselas de módulo — */
+"Volume"        = "Volumen";
+"Temperature"   = "Temperatura";
+"Battery"       = "Batería";
+"CPU / RAM"     = "CPU / RAM";
+"FPS"           = "FPS";
+"Network"       = "Red";
+"Awake"         = "Despierto";
+"Screenshots"   = "Capturas";
+"Clipboard"     = "Portapapeles";
+
+/* — Ajustes — */
+"General"           = "General";
+"Application"       = "Aplicación";
+"Default module"    = "Módulo por defecto";
+"None"              = "Ninguno";
+"Menu bar shows"    = "La barra muestra";
+"RAM"               = "RAM";
+"App icon"          = "Icono";
+"Version"           = "Versión";
+"Quit MenuDeck"     = "Salir de MenuDeck";
+
+/* — Volumen — */
+"Audio Capture needed"                          = "Falta permiso de Audio";
+"Settings → Privacy & Security → Audio Capture" = "Ajustes → Privacidad y seguridad → Captura de audio";
+"Open"                                          = "Abrir";
+"No audio apps"                                 = "Ninguna app con audio";
+"Open an app and play something"                = "Abre una app y reproduce algo";
+"muted"                                         = "silenciado";
+
+"Process tap failed (%d). First use should trigger a system permission prompt — check Privacy & Security → Audio Capture." = "Falló la intercepción del proceso (%d). El primer uso debería pedir permiso al sistema — revisa Privacidad y seguridad → Captura de audio.";
+"Could not read tap audio format."   = "No se pudo leer el formato de audio.";
+"Aggregate device failed (%d)."      = "Falló el dispositivo agregado (%d).";
+"I/O proc setup failed (%d)."        = "Falló la configuración de E/S (%d).";
+"Device start failed (%d)."          = "No se pudo iniciar el dispositivo (%d).";
+
+/* — Temperatura — */
+"CPU peak"                    = "Pico de CPU";
+"No sensor data"              = "Sin datos de sensores";
+"SMC unavailable"             = "SMC no disponible";
+"No temperature keys found"   = "No se encontraron claves de temperatura";
+"SMC Logs"                    = "Registros del SMC";
+"System"                      = "Sistema";
+"Normal"                      = "Normal";
+"Fair"                        = "Moderada";
+"High"                        = "Alta";
+"Critical"                    = "Crítica";
+"Unknown"                     = "Desconocida";
+
+/* — Batería — */
+"Full in %@"    = "Llena en %@";
+"Charged"       = "Cargada";
+"%@ left"       = "%@ restantes";
+"Health"        = "Salud";
+"Cycles"        = "Ciclos";
+"Capacity"      = "Capacidad";
+
+/* — CPU / RAM — */
+"Memory"    = "Memoria";
+"In use"    = "En uso";
+"Wired"     = "Cableada";
+"Free"      = "Libre";
+
+/* — FPS — */
+"GPU usage"                  = "Uso de GPU";
+"Show FPS over games"        = "Mostrar FPS sobre los juegos";
+"Enables Metal's built-in HUD" = "Activa el HUD nativo de Metal";
+"Reopen the game for it to appear. Only works with apps that use Metal." = "Vuelve a abrir el juego para que aparezca. Solo funciona con apps que usan Metal.";
+
+/* — Red — */
+"Down"      = "Bajada";
+"Up"        = "Subida";
+"No Wi-Fi"  = "Sin Wi-Fi";
+"Offline"   = "Sin conexión";
+
+/* — Despierto — */
+"Keep the Mac awake"            = "Mantener el Mac despierto";
+"Prevents sleep and screen lock" = "Evita que se suspenda o bloquee la pantalla";
+"Active indefinitely"           = "Activo indefinidamente";
+"Active · %@ left"              = "Activo · %@ restantes";
+"Duration"                      = "Duración";
+"15 min"                        = "15 min";
+"30 min"                        = "30 min";
+"1 hour"                        = "1 hora";
+"2 hours"                       = "2 horas";
+"Indefinite"                    = "Indefinido";
+
+/* — Capturas — */
+"Screen"        = "Pantalla";
+"Selection"     = "Área";
+"Window"        = "Ventana";
+"Desktop"       = "Escritorio";
+"No delay"      = "Sin retardo";
+"3 s"           = "3 s";
+"5 s"           = "5 s";
+"10 s"          = "10 s";
+"Capture cancelled"     = "Captura cancelada";
+"Copied to clipboard"   = "Copiado al portapapeles";
+"Show in Finder"        = "Mostrar en Finder";
+"Could not locate the Desktop folder" = "No se encontró la carpeta Escritorio";
+
+/* — Portapapeles — */
+"Clear all"                     = "Borrar todo";
+"No history yet"                = "Historial vacío";
+"Copy something to see it here" = "Copia algo para verlo aquí";
