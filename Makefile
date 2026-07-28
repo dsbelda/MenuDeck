@@ -19,6 +19,7 @@ bundle: build
 	mkdir -p $(BUNDLE)/Contents/Resources
 	cp $(BUILD_DIR)/$(APP_NAME) $(BUNDLE)/Contents/MacOS/
 	cp Info.plist $(BUNDLE)/Contents/
+	cp Sources/$(APP_NAME)/Assets/AppIcon.icns $(BUNDLE)/Contents/Resources/
 	codesign --force --deep --sign - --identifier $(BUNDLE_ID) $(BUNDLE)
 	@echo "✓ Bundle signed: $(BUNDLE)"
 
@@ -27,6 +28,7 @@ app: release
 	mkdir -p $(BUNDLE)/Contents/Resources
 	cp $(RELEASE_DIR)/$(APP_NAME) $(BUNDLE)/Contents/MacOS/
 	cp Info.plist $(BUNDLE)/Contents/
+	cp Sources/$(APP_NAME)/Assets/AppIcon.icns $(BUNDLE)/Contents/Resources/
 	codesign --force --deep --sign - --identifier $(BUNDLE_ID) $(BUNDLE)
 	@echo "✓ Release bundle signed: $(BUNDLE)"
 
