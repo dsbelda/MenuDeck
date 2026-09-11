@@ -23,6 +23,7 @@ final class MenuBarController: NSObject {
         setupStatusItem()
         setupPopover()
         startDisplayTimer()
+        setupHotkeys()
 
         NotificationCenter.default.addObserver(
             self, selector: #selector(closePopover),
@@ -58,13 +59,48 @@ final class MenuBarController: NSObject {
 
     private func setupPopover() {
         popover.behavior = .transient
-        popover.animates = true
+        // NSPopover's show animation is a ~0.25s fade-and-scale that runs before
+        // the content is interactive, and it stacks with the SwiftUI transitions
+        // inside. A menu bar panel should be on screen the instant it's clicked.
+        popover.animates = false
         if #available(macOS 13.0, *) {
             hostingController.sizingOptions = .preferredContentSize
         } else {
             popover.contentSize = NSSize(width: 320, height: 440)
         }
         popover.contentViewController = hostingController
+    }
+
+    // MARK: – Global shortcuts
+
+    private func setupHotkeys() {
+        HotkeyManager.shared.onTrigger = { [weak self] moduleID in
+            self?.toggle(moduleID: moduleID)
+        }
+    }
+
+    /// Pressing a module's shortcut opens the popover on that module — or, if it
+    /// is already the one on screen, closes it again, so the same keystroke both
+    /// summons and dismisses.
+    private func toggle(moduleID: String) {
+        let state = PopoverState.shared
+
+        if popover.isShown, state.screen == .main, state.expandedID == moduleID {
+            popover.performClose(nil)
+            return
+        }
+
+        state.screen = .main
+        state.expandedID = moduleID
+
+        guard let button = statusItem.button else { return }
+        if !popover.isShown {
+            popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        }
+        // Without this the popover appears behind whatever app the user was in,
+        // and its controls stay unresponsive until they click it.
+        NSApp.activate(ignoringOtherApps: true)
+        popover.contentViewController?.view.window?.makeKey()
     }
 
     // MARK: – Display timer
@@ -136,10 +172,11 @@ final class MenuBarController: NSObject {
             popover.performClose(nil)
         } else {
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
-            // Enumerating the HAL walks every audio process and its parent
-            // chain — too slow to sit in front of the open animation. The
-            // volume module refreshes again in its own onAppear.
-            Task { @MainActor in CoreAudioManager.shared.refresh() }
+            // No eager CoreAudio refresh here: refresh() is @MainActor and
+            // enumerating the HAL walks every audio process and its parent
+            // chain, so it stalled the main thread on every single open — even
+            // when the volume module was never shown. VolumeControlView already
+            // refreshes in its own onAppear, which is the only time it matters.
         }
     }
 

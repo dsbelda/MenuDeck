@@ -1,2 +1,5 @@
 /* Lo muestra el sistema en la petición de permiso de Captura de audio. */
 "NSAudioCaptureUsageDescription" = "MenuDeck necesita acceso a la captura de audio para interceptar y controlar el volumen de cada app.";
+
+/* Lo muestra el sistema en la petición de permiso de Bluetooth. */
+"NSBluetoothAlwaysUsageDescription" = "MenuDeck lista tus dispositivos Bluetooth emparejados para que puedas conectarlos y desconectarlos desde la barra de menú.";

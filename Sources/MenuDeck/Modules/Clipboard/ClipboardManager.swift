@@ -21,10 +21,24 @@ final class ClipboardManager: ObservableObject {
 
     private init() {
         lastChangeCount = NSPasteboard.general.changeCount
-        // Runs for the whole app lifetime by design — history has to accrue
-        // while the popover is closed — so keep the cadence modest.
-        timer = .repeating(every: 1.5, tolerance: 0.3) { [weak self] _ in
-            Task { @MainActor in self?.poll() }
+    }
+
+    /// Polling has to outlive the popover — history is useless if it only
+    /// accrues while the panel is open — but it must not outlive the *module*.
+    /// Turning Clipboard off in Settings used to leave this timer running for
+    /// the rest of the session, the one piece of the app that kept working for
+    /// nobody.
+    func setEnabled(_ enabled: Bool) {
+        guard enabled != (timer != nil) else { return }
+
+        if enabled {
+            lastChangeCount = NSPasteboard.general.changeCount
+            timer = .repeating(every: 1.5, tolerance: 0.3) { [weak self] _ in
+                Task { @MainActor in self?.poll() }
+            }
+        } else {
+            timer?.invalidate()
+            timer = nil
         }
     }
 

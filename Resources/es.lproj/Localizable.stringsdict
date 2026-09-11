@@ -18,5 +18,117 @@
 			<string>%lld elementos</string>
 		</dict>
 	</dict>
+	<key>%lld outdated</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@count@</string>
+		<key>count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld pendiente</string>
+			<key>other</key>
+			<string>%lld pendientes</string>
+		</dict>
+	</dict>
+	<key>%lld installed</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@count@</string>
+		<key>count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld instalado</string>
+			<key>other</key>
+			<string>%lld instalados</string>
+		</dict>
+	</dict>
+	<key>%lld installed packages depend on it</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@count@</string>
+		<key>count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld paquete instalado depende de él</string>
+			<key>other</key>
+			<string>%lld paquetes instalados dependen de él</string>
+		</dict>
+	</dict>
+	<key>%lld listening</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@count@</string>
+		<key>count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld escuchando</string>
+			<key>other</key>
+			<string>%lld escuchando</string>
+		</dict>
+	</dict>
+	<key>%lld shortcuts</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@count@</string>
+		<key>count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld atajo</string>
+			<key>other</key>
+			<string>%lld atajos</string>
+		</dict>
+	</dict>
+	<key>%lld items in the Trash</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@count@</string>
+		<key>count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>%lld elemento en la Papelera</string>
+			<key>other</key>
+			<string>%lld elementos en la Papelera</string>
+		</dict>
+	</dict>
+	<key>Permanently delete %lld items?</key>
+	<dict>
+		<key>NSStringLocalizedFormatKey</key>
+		<string>%#@count@</string>
+		<key>count</key>
+		<dict>
+			<key>NSStringFormatSpecTypeKey</key>
+			<string>NSStringPluralRuleType</string>
+			<key>NSStringFormatValueTypeKey</key>
+			<string>lld</string>
+			<key>one</key>
+			<string>¿Eliminar %lld elemento para siempre?</string>
+			<key>other</key>
+			<string>¿Eliminar %lld elementos para siempre?</string>
+		</dict>
+	</dict>
 </dict>
 </plist>
