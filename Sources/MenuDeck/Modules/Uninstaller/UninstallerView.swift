@@ -26,32 +26,63 @@ struct UninstallerView: View {
 
     private var appList: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 6) {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.tertiary)
-                TextField("Search apps", text: $query)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 11))
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-
+            filterBar
             Divider().opacity(0.08)
 
             if mgr.isLoadingApps {
                 ProgressView().controlSize(.small)
-                    .frame(maxWidth: .infinity).padding(.vertical, 30)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if filtered.isEmpty {
+                Text("No apps match “\(query)”")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.tertiary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                ForEach(filtered) { app in
-                    appRow(app)
-                    if app.id != filtered.last?.id {
-                        Divider().padding(.leading, 38).opacity(0.06)
+                // Only the rows scroll: the filter field above stays put.
+                ScrollView(.vertical) {
+                    VStack(spacing: 0) {
+                        ForEach(filtered) { app in
+                            appRow(app)
+                            if app.id != filtered.last?.id {
+                                Divider().padding(.leading, 38).opacity(0.06)
+                            }
+                        }
                     }
+                    .padding(.bottom, 4)
                 }
+                .scrollBounceBehavior(.basedOnSize)
             }
         }
-        .padding(.bottom, 4)
+    }
+
+    private var filterBar: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(.tertiary)
+
+            TextField("Filter apps", text: $query)
+                .textFieldStyle(.plain)
+                .font(.system(size: 11))
+
+            if query.isEmpty {
+                Text("\(mgr.apps.count)")
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundStyle(.quaternary)
+            } else {
+                Button { query = "" } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.tertiary)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 9)
+        .padding(.vertical, 5)
+        .background(.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
     }
 
     private func appRow(_ app: UninstallerManager.App) -> some View {
@@ -114,10 +145,18 @@ struct UninstallerView: View {
 
             if mgr.isScanning {
                 ProgressView().controlSize(.small)
-                    .frame(maxWidth: .infinity).padding(.vertical, 26)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                warnings(app)
-                itemList(app)
+                // The app's name and the total stay above, the confirm button
+                // below, and only the list of items to remove moves.
+                ScrollView(.vertical) {
+                    VStack(spacing: 0) {
+                        warnings(app)
+                        itemList(app)
+                    }
+                }
+                .scrollBounceBehavior(.basedOnSize)
+
                 actionBar(app)
             }
         }
@@ -286,8 +325,7 @@ struct UninstallerView: View {
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 34)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private func summary(
@@ -323,8 +361,7 @@ struct UninstallerView: View {
             }
             .buttonStyle(.plain)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 22)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 

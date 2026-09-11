@@ -147,24 +147,7 @@ struct MenuDeckPopoverView: View {
             if let id = expandedId,
                let mod = visibleModules.first(where: { $0.id == id }) {
                 Divider().opacity(0.08)
-                ScrollView(.vertical) {
-                    mod.makeContent()
-                        // makeContent() is type-erased, so every module lands in
-                        // the same structural slot and SwiftUI reuses the previous
-                        // module's identity when switching. onDisappear/onAppear
-                        // then never fire, the new module's manager is never
-                        // start()ed, and the panel renders empty. Keying on the
-                        // module id forces a real teardown + setup per module.
-                        .id(mod.id)
-                }
-                // A constant height, not a maximum. With .preferredContentSize
-                // the popover tracks its content, so a per-module height made
-                // it resize on every switch — and again whenever anything
-                // inside a module appeared (the thermal log panel, the audio
-                // permission banner), which happens outside any animation
-                // transaction and reads as a jump. Overflow now scrolls.
-                .frame(height: Self.moduleHeight, alignment: .top)
-                .scrollBounceBehavior(.basedOnSize)
+                moduleContent(mod)
             }
         }
         // Deliberately unanimated. Expanding a module changes the panel's
@@ -174,6 +157,31 @@ struct MenuDeckPopoverView: View {
         // behind — that lag is the jump you see on the first expand. Resizing in
         // a single layout pass keeps the window and its content in step.
         .frame(width: Self.panelWidth)
+    }
+
+    /// A constant height, not a maximum. With `.preferredContentSize` the
+    /// popover tracks its content, so a per-module height made it resize on
+    /// every switch — and again whenever anything inside a module appeared (the
+    /// thermal log panel, the audio permission banner), which happens outside
+    /// any animation transaction and reads as a jump.
+    @ViewBuilder
+    private func moduleContent(_ mod: any Module) -> some View {
+        // makeContent() is type-erased, so every module lands in the same
+        // structural slot and SwiftUI reuses the previous module's identity when
+        // switching. onDisappear/onAppear then never fire, the new module's
+        // manager is never start()ed, and the panel renders empty. Keying on the
+        // module id forces a real teardown + setup per module.
+        if mod.providesOwnScrolling {
+            mod.makeContent()
+                .id(mod.id)
+                .frame(height: Self.moduleHeight, alignment: .top)
+        } else {
+            ScrollView(.vertical) {
+                mod.makeContent().id(mod.id)
+            }
+            .frame(height: Self.moduleHeight, alignment: .top)
+            .scrollBounceBehavior(.basedOnSize)
+        }
     }
 
     // MARK: – Tile grid  (4 columns, N rows)
