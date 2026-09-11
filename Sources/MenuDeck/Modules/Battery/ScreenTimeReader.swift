@@ -15,6 +15,10 @@ final class ScreenTimeReader: ObservableObject {
     }
 
     @Published private(set) var days: [Day] = []
+    /// Screen-on time since the battery last read 100%, and when that was.
+    /// Both nil when no full charge falls inside the log's window.
+    @Published private(set) var sinceFullCharge: TimeInterval?
+    @Published private(set) var lastFullCharge: Date?
     @Published private(set) var isLoading = false
     /// The log only reaches back so far, so the earliest day it reports is
     /// usually a partial figure rather than a real total.
@@ -45,6 +49,8 @@ final class ScreenTimeReader: ObservableObject {
                 if !parsed.days.isEmpty {
                     self.days = parsed.days
                     self.coversFullHistory = parsed.complete
+                    self.sinceFullCharge = parsed.sinceFullCharge
+                    self.lastFullCharge = parsed.lastFullCharge
                 }
                 self.isLoading = false
                 self.lastLoaded = Date()
@@ -64,26 +70,42 @@ final class ScreenTimeReader: ObservableObject {
     /// Lines look like:
     ///
     ///     2026-09-11 12:29:51 +0200 Notification   Display is turned on
+    ///     2026-09-11 19:45:23 +0200 Sleep          … Using Batt (Charge:65%) …
     ///
     /// Two quirks the log actually exhibits: the same transition can be reported
     /// twice in a row (two "on" with no "off" between them), and the window can
     /// open mid-session, so the first event seen may be an "off" for a stretch
     /// that began before the log starts.
+    ///
+    /// One pass collects display sessions and the last full-charge reading; the
+    /// daily totals and the since-charge total are both derived from those,
+    /// because re-reading tens of thousands of lines to answer the second
+    /// question would double the only expensive part of this.
     private nonisolated static func parse(
         _ log: String, now: Date
-    ) -> (days: [Day], complete: Bool) {
+    ) -> (days: [Day], complete: Bool, sinceFullCharge: TimeInterval?, lastFullCharge: Date?) {
         var onSince: Date?
         var firstEvent: Date?
         var sawLeadingOff = false
-        var totals: [Date: TimeInterval] = [:]
+        var sessions: [(start: Date, end: Date)] = []
+        var lastFullCharge: Date?
         let calendar = Calendar.current
 
         for line in log.split(separator: "\n") {
-            guard line.contains("Display is turned") else { continue }
             guard line.count > 29 else { continue }
+
+            let isDisplay = line.contains("Display is turned")
+            let hasCharge = line.contains("Charge:")
+            guard isDisplay || hasCharge else { continue }
 
             let stamp = String(line.prefix(25))
             guard let date = lineFormatter.date(from: stamp) else { continue }
+
+            if hasCharge, chargePercent(in: line) == 100 {
+                lastFullCharge = date
+            }
+
+            guard isDisplay else { continue }
             if firstEvent == nil { firstEvent = date }
 
             if line.contains("turned on") {
@@ -95,21 +117,53 @@ final class ScreenTimeReader: ObservableObject {
                     if firstEvent == date { sawLeadingOff = true }
                     continue
                 }
-                accumulate(from: start, to: date, into: &totals, calendar: calendar)
+                sessions.append((start, date))
                 onSince = nil
             }
         }
 
         // The display is still on right now, so the open session runs to `now`.
         if let start = onSince {
-            accumulate(from: start, to: now, into: &totals, calendar: calendar)
+            sessions.append((start, now))
+        }
+
+        var totals: [Date: TimeInterval] = [:]
+        for session in sessions {
+            accumulate(from: session.start, to: session.end, into: &totals, calendar: calendar)
         }
 
         let recorded = totals
             .map { Day(date: $0.key, seconds: $0.value) }
             .sorted { $0.date < $1.date }
 
-        return (fillGaps(in: recorded, calendar: calendar), !sawLeadingOff)
+        // Only the part of each session that falls after the charge counts, so a
+        // session straddling that moment is clipped rather than counted whole.
+        let sinceCharge = lastFullCharge.map { charge in
+            sessions.reduce(into: TimeInterval(0)) { total, session in
+                let start = max(session.start, charge)
+                if session.end > start { total += session.end.timeIntervalSince(start) }
+            }
+        }
+
+        return (
+            fillGaps(in: recorded, calendar: calendar),
+            !sawLeadingOff,
+            sinceCharge,
+            lastFullCharge
+        )
+    }
+
+    /// Reads the percentage out of either shape the log uses: "(Charge:100%)"
+    /// and "(Charge: 100)" both appear, the second with a space and no sign.
+    private nonisolated static func chargePercent(in line: Substring) -> Int? {
+        guard let marker = line.range(of: "Charge:") else { return nil }
+        var digits = ""
+        for character in line[marker.upperBound...] {
+            if character == " " && digits.isEmpty { continue }
+            guard character.isNumber else { break }
+            digits.append(character)
+        }
+        return Int(digits)
     }
 
     /// A day the Mac spent shut down produces no events at all. Left as a hole,

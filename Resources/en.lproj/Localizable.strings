@@ -226,3 +226,6 @@
 
 /* — Screen time — */
 "Screen on today"   = "Screen on today";
+"Since full charge"                      = "Since full charge";
+"Last at 100%% on %@"                    = "Last at 100%% on %@";
+"No full charge inside the log's window" = "No full charge inside the log's window";
