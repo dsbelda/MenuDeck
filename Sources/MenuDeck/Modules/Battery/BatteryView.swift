@@ -2,15 +2,92 @@ import SwiftUI
 
 struct BatteryView: View {
     @StateObject private var mgr = BatteryManager()
+    @StateObject private var screen = ScreenTimeReader()
 
     var body: some View {
         VStack(spacing: 0) {
             hero
             Divider().opacity(0.08)
             stats
+            Divider().opacity(0.08)
+            screenTime
         }
-        .onAppear  { mgr.start() }
+        .onAppear  { mgr.start(); screen.load() }
         .onDisappear { mgr.stop() }
+    }
+
+    // MARK: – Screen-on time
+
+    private var screenTime: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Image(systemName: "sun.max.fill")
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(.yellow)
+                Text("Screen on today")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(.tertiary)
+                    .textCase(.uppercase)
+                    .tracking(0.4)
+
+                Spacer()
+
+                if screen.isLoading && screen.days.isEmpty {
+                    ProgressView().controlSize(.small).scaleEffect(0.5)
+                } else {
+                    Text(ScreenTimeReader.format(screen.today))
+                        .font(.system(size: 13, weight: .bold, design: .rounded).monospacedDigit())
+                        .foregroundStyle(.primary)
+                        .contentTransition(.numericText())
+                }
+            }
+
+            if !screen.days.isEmpty {
+                history
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 11)
+    }
+
+    /// The last week, most recent on the right. The oldest bar is dropped when
+    /// the log window opened mid-session, because its total would be partial and
+    /// would read as a genuinely quiet day.
+    private var history: some View {
+        let recent = Array(
+            screen.days.dropFirst(screen.coversFullHistory ? 0 : 1).suffix(7)
+        )
+        let peak = max(recent.map(\.seconds).max() ?? 1, 1)
+
+        return HStack(alignment: .bottom, spacing: 4) {
+            ForEach(recent) { day in
+                VStack(spacing: 3) {
+                    RoundedRectangle(cornerRadius: 2, style: .continuous)
+                        .fill(day.id == recent.last?.id
+                              ? AnyShapeStyle(Color.green.gradient)
+                              : AnyShapeStyle(Color.primary.opacity(0.14)))
+                        .frame(height: max(2, 26 * day.seconds / peak))
+                    Text(Self.weekday(day.date))
+                        .font(.system(size: 7, weight: .medium))
+                        .foregroundStyle(.quaternary)
+                }
+                .frame(maxWidth: .infinity)
+                .help("\(Self.fullDate(day.date)) · \(ScreenTimeReader.format(day.seconds))")
+            }
+        }
+        .frame(height: 38, alignment: .bottom)
+    }
+
+    private static func weekday(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.setLocalizedDateFormatFromTemplate("EEEEE")
+        return formatter.string(from: date)
+    }
+
+    private static func fullDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.setLocalizedDateFormatFromTemplate("EEEEdMMM")
+        return formatter.string(from: date)
     }
 
     // MARK: – Hero
