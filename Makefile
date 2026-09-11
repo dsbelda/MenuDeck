@@ -4,10 +4,28 @@ BUNDLE      = $(APP_NAME).app
 BUILD_DIR   = .build/debug
 RELEASE_DIR = .build/release
 
-.PHONY: build bundle release run install clean
+.PHONY: build bundle release run install clean icon
 
 build:
 	swift build 2>&1
+
+# Redraws AppIcon.png from Tools/generate-icon.swift, then rebuilds the .icns
+# from it. The generator mirrors MenuDeckGlyph, so the Dock icon and the status
+# item stay the same mark.
+ICONSET = .build/AppIcon.iconset
+icon:
+	swift Tools/generate-icon.swift
+	rm -rf $(ICONSET)
+	mkdir -p $(ICONSET)
+	@for size in 16 32 128 256 512; do \
+		sips -z $$size $$size Sources/$(APP_NAME)/Assets/AppIcon.png \
+			--out $(ICONSET)/icon_$${size}x$${size}.png >/dev/null; \
+		sips -z $$(($$size * 2)) $$(($$size * 2)) Sources/$(APP_NAME)/Assets/AppIcon.png \
+			--out $(ICONSET)/icon_$${size}x$${size}@2x.png >/dev/null; \
+	done
+	iconutil -c icns $(ICONSET) -o Sources/$(APP_NAME)/Assets/AppIcon.icns
+	rm -rf $(ICONSET)
+	@echo "✓ Rebuilt AppIcon.icns"
 
 release:
 	swift build -c release 2>&1
