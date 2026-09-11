@@ -223,3 +223,6 @@
 "Could not move some items" = "Could not move some items";
 "Filter apps"               = "Filter apps";
 "No apps match “%@”"        = "No apps match “%@”";
+
+/* — Screen time — */
+"Screen on today"   = "Screen on today";

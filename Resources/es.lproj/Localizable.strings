@@ -220,3 +220,6 @@
 "Could not move some items" = "No se pudieron mover algunos elementos";
 "Filter apps"               = "Filtrar apps";
 "No apps match “%@”"        = "Ninguna app coincide con «%@»";
+
+/* — Tiempo de pantalla — */
+"Screen on today"   = "Pantalla activa hoy";
