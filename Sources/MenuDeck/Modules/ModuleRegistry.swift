@@ -24,6 +24,7 @@ enum ModuleRegistry {
         ShortcutsModule(),
         BluetoothModule(),
         TrashModule(),
+        UninstallerModule(),
         FinderTweaksModule(),
     ]
 
