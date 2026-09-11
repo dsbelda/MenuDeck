@@ -208,3 +208,16 @@
 "Show desktop icons"            = "Show desktop icons";
 "Each change relaunches Finder" = "Each change relaunches Finder";
 "Relaunching Finder…"           = "Relaunching Finder…";
+
+/* — Uninstall — */
+"Search apps"               = "Search apps";
+"The app itself"            = "The app itself";
+"%@ is running"             = "%@ is running";
+"Quit it"                   = "Quit it";
+"Installed with Homebrew — use brew uninstall --cask %@" = "Installed with Homebrew — use brew uninstall --cask %@";
+"Some folders need Full Disk Access, so this list may be short" = "Some folders need Full Disk Access, so this list may be short";
+"name match"                = "name match";
+"Move to Trash"             = "Move to Trash";
+"Nothing is deleted — everything goes to the Trash" = "Nothing is deleted — everything goes to the Trash";
+"Moving %@ to the Trash…"   = "Moving %@ to the Trash…";
+"Could not move some items" = "Could not move some items";

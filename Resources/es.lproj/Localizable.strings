@@ -205,3 +205,16 @@
 "Show desktop icons"            = "Mostrar iconos del escritorio";
 "Each change relaunches Finder" = "Cada cambio reinicia Finder";
 "Relaunching Finder…"           = "Reiniciando Finder…";
+
+/* — Desinstalar — */
+"Search apps"               = "Buscar apps";
+"The app itself"            = "La app en sí";
+"%@ is running"             = "%@ está abierta";
+"Quit it"                   = "Cerrarla";
+"Installed with Homebrew — use brew uninstall --cask %@" = "Instalada con Homebrew — usa brew uninstall --cask %@";
+"Some folders need Full Disk Access, so this list may be short" = "Algunas carpetas necesitan Acceso Total al Disco; la lista puede estar incompleta";
+"name match"                = "por nombre";
+"Move to Trash"             = "Mover a la Papelera";
+"Nothing is deleted — everything goes to the Trash" = "No se borra nada — todo va a la Papelera";
+"Moving %@ to the Trash…"   = "Moviendo %@ a la Papelera…";
+"Could not move some items" = "No se pudieron mover algunos elementos";

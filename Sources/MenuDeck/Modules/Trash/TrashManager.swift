@@ -80,38 +80,11 @@ final class TrashManager: ObservableObject {
                 includingPropertiesForKeys: [.totalFileAllocatedSizeKey, .isDirectoryKey],
                 options: []
             )
-            var total: Int64 = 0
-            for entry in entries {
-                total += size(of: entry, manager: manager)
-            }
+            let total = entries.reduce(into: Int64(0)) { $0 += allocatedSize(of: $1) }
             return .success(Contents(itemCount: entries.count, byteSize: total))
         } catch {
             return .failure(error)
         }
-    }
-
-    private nonisolated static func size(of url: URL, manager: FileManager) -> Int64 {
-        let keys: Set<URLResourceKey> = [.totalFileAllocatedSizeKey, .isDirectoryKey]
-        guard let values = try? url.resourceValues(forKeys: keys) else { return 0 }
-
-        if values.isDirectory == true {
-            guard let walker = manager.enumerator(
-                at: url,
-                includingPropertiesForKeys: Array(keys),
-                options: []
-            ) else { return 0 }
-
-            var total: Int64 = 0
-            for case let child as URL in walker {
-                let childValues = try? child.resourceValues(forKeys: keys)
-                if childValues?.isDirectory != true {
-                    total += Int64(childValues?.totalFileAllocatedSize ?? 0)
-                }
-            }
-            return total
-        }
-
-        return Int64(values.totalFileAllocatedSize ?? 0)
     }
 
     private nonisolated static func removeAll() {
