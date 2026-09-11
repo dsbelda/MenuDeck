@@ -218,3 +218,5 @@
 "Nothing is deleted — everything goes to the Trash" = "No se borra nada — todo va a la Papelera";
 "Moving %@ to the Trash…"   = "Moviendo %@ a la Papelera…";
 "Could not move some items" = "No se pudieron mover algunos elementos";
+"Filter apps"               = "Filtrar apps";
+"No apps match “%@”"        = "Ninguna app coincide con «%@»";

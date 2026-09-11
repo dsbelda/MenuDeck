@@ -201,6 +201,13 @@ final class MenuBarController: NSObject {
             popover.performClose(nil)
         } else {
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+            // Keyboard input needs the app to be active and the popover's window
+            // to be key. Without this a TextField cannot become first responder,
+            // so the uninstaller's filter field silently ignored typing, and the
+            // shortcut recorder — which listens through a *local* event monitor —
+            // never saw a keystroke when the popover was opened by clicking.
+            NSApp.activate(ignoringOtherApps: true)
+            popover.contentViewController?.view.window?.makeKey()
             // No eager CoreAudio refresh here: refresh() is @MainActor and
             // enumerating the HAL walks every audio process and its parent
             // chain, so it stalled the main thread on every single open — even

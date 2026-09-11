@@ -18,6 +18,12 @@ protocol Module: AnyObject {
     /// Told when the user switches the module on or off. Only modules that keep
     /// working while the popover is closed need to act on this.
     func setEnabled(_ enabled: Bool)
+
+    /// True when the module lays out its own scrolling. The panel otherwise
+    /// wraps the whole module in one scroll view, which is right for a short
+    /// readout but wrong for anything with a header that has to stay put while
+    /// a long list moves under it.
+    var providesOwnScrolling: Bool { get }
 }
 
 extension Module {
@@ -27,4 +33,7 @@ extension Module {
     /// Most modules start and stop with their view's onAppear/onDisappear, so
     /// being switched off costs them nothing and there is nothing to do here.
     func setEnabled(_ enabled: Bool) {}
+
+    /// Most modules are a single short panel that can scroll as one piece.
+    var providesOwnScrolling: Bool { false }
 }
