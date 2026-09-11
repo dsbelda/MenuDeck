@@ -223,3 +223,6 @@
 
 /* — Tiempo de pantalla — */
 "Screen on today"   = "Pantalla activa hoy";
+"Since full charge"                      = "Desde la carga";
+"Last at 100%% on %@"                    = "Última vez al 100%% el %@";
+"No full charge inside the log's window" = "No hay ninguna carga completa dentro del registro";

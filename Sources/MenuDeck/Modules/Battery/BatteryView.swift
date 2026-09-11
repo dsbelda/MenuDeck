@@ -19,26 +19,38 @@ struct BatteryView: View {
     // MARK: – Screen-on time
 
     private var screenTime: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Image(systemName: "sun.max.fill")
-                    .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(.yellow)
-                Text("Screen on today")
-                    .font(.system(size: 9, weight: .semibold))
-                    .foregroundStyle(.tertiary)
-                    .textCase(.uppercase)
-                    .tracking(0.4)
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 0) {
+                screenCell(
+                    icon: "sun.max.fill",
+                    tint: .yellow,
+                    label: "Screen on today",
+                    value: screen.isLoading && screen.days.isEmpty
+                        ? nil
+                        : ScreenTimeReader.format(screen.today)
+                )
 
-                Spacer()
+                Divider().frame(height: 26).opacity(0.12)
 
-                if screen.isLoading && screen.days.isEmpty {
-                    ProgressView().controlSize(.small).scaleEffect(0.5)
+                if let since = screen.sinceFullCharge {
+                    screenCell(
+                        icon: "bolt.badge.clock.fill",
+                        tint: .green,
+                        label: "Since full charge",
+                        value: ScreenTimeReader.format(since)
+                    )
+                    .help(chargeHelp)
                 } else {
-                    Text(ScreenTimeReader.format(screen.today))
-                        .font(.system(size: 13, weight: .bold, design: .rounded).monospacedDigit())
-                        .foregroundStyle(.primary)
-                        .contentTransition(.numericText())
+                    // pmset's log only reaches back a few days, so a Mac that
+                    // has not been topped up recently has nothing to measure
+                    // from and the cell would otherwise show a bare dash.
+                    screenCell(
+                        icon: "bolt.badge.clock",
+                        tint: .secondary,
+                        label: "Since full charge",
+                        value: screen.isLoading ? nil : "—"
+                    )
+                    .help("No full charge inside the log's window")
                 }
             }
 
@@ -46,8 +58,46 @@ struct BatteryView: View {
                 history
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 11)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+    }
+
+    private func screenCell(
+        icon: String, tint: Color, label: LocalizedStringKey, value: String?
+    ) -> some View {
+        VStack(spacing: 3) {
+            HStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(tint)
+                Text(label)
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(.tertiary)
+                    .textCase(.uppercase)
+                    .tracking(0.4)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+            }
+            if let value {
+                Text(value)
+                    .font(.system(size: 14, weight: .bold, design: .rounded).monospacedDigit())
+                    .contentTransition(.numericText())
+            } else {
+                ProgressView().controlSize(.small).scaleEffect(0.55).frame(height: 17)
+            }
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var chargeHelp: Text {
+        guard let charged = screen.lastFullCharge else { return Text("") }
+        return Text("Last at 100% on \(Self.fullDateTime(charged))")
+    }
+
+    private static func fullDateTime(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.setLocalizedDateFormatFromTemplate("EEEdMMMHmm")
+        return formatter.string(from: date)
     }
 
     /// The last week, most recent on the right. The oldest bar is dropped when
