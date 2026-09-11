@@ -13,10 +13,14 @@
 "Awake"         = "Awake";
 "Screenshots"   = "Screenshots";
 "Clipboard"     = "Clipboard";
+"Output"        = "Output";
+"Storage"       = "Storage";
+"Colour"        = "Colour";
 
 /* — Settings — */
 "General"           = "General";
 "Application"       = "Application";
+"Modules"           = "Modules";
 "Default module"    = "Default module";
 "None"              = "None";
 "Menu bar shows"    = "Menu bar shows";
@@ -24,6 +28,26 @@
 "App icon"          = "App icon";
 "Version"           = "Version";
 "Quit MenuDeck"     = "Quit MenuDeck";
+"Every module is turned off"    = "Every module is turned off";
+"Turn some back on in Settings" = "Turn some back on in Settings";
+
+/* — Shortcuts — */
+"Press a combination · esc to cancel" = "Press a combination · esc to cancel";
+"Click to record a shortcut"          = "Click to record a shortcut";
+"Click to change · delete to clear"   = "Click to change · delete to clear";
+
+/* — Audio output — */
+"No output devices" = "No output devices";
+
+/* — Storage — */
+"Reading volumes…"  = "Reading volumes…";
+"%@ free of %@"     = "%@ free of %@";
+
+/* — Colour — */
+"Pick a colour"                    = "Pick a colour";
+"Recent"                           = "Recent";
+"No colours yet"                   = "No colours yet";
+"Picked colours are copied as HEX" = "Picked colours are copied as HEX";
 
 /* — Volume — */
 "Audio Capture needed"                          = "Audio Capture needed";
@@ -108,3 +132,79 @@
 "Clear all"                     = "Clear all";
 "No history yet"                = "No history yet";
 "Copy something to see it here" = "Copy something to see it here";
+
+/* — Brew — */
+"Brew"                                  = "Brew";
+"Homebrew not found"                    = "Homebrew not found";
+"Looked in /opt/homebrew and /usr/local" = "Looked in /opt/homebrew and /usr/local";
+"Reload the installed list"             = "Reload the installed list";
+"Everything is up to date"              = "Everything is up to date";
+"Nothing installed"                     = "Nothing installed";
+"Upgrade all"                           = "Upgrade all";
+"Update index"                          = "Update index";
+"Runs brew update to refresh the package index" = "Runs brew update to refresh the package index";
+"Done"                                  = "Done";
+"Some packages need admin rights"       = "Some packages need admin rights";
+"Copy command"                          = "Copy command";
+"Upgrade"                               = "Upgrade";
+"Uninstall"                             = "Uninstall";
+"Uninstall %@?"                         = "Uninstall %@?";
+"Updating package index"                = "Updating package index";
+"Upgrading everything"                  = "Upgrading everything";
+"Upgrading %@"                          = "Upgrading %@";
+"Removing %@"                           = "Removing %@";
+
+/* — Layout — */
+"Layout"      = "Layout";
+"Grid"        = "Grid";
+"Icons only"  = "Icons only";
+"List"        = "List";
+"Single row"  = "Single row";
+"Requires Homebrew"                     = "Requires Homebrew";
+"This module needs Homebrew installed. Looked in /opt/homebrew and /usr/local." = "This module needs Homebrew installed. Looked in /opt/homebrew and /usr/local.";
+"Open brew.sh"                          = "Open brew.sh";
+"Copy install command"                  = "Copy install command";
+"Copied"                                = "Copied";
+
+/* — Ports — */
+"Ports"                     = "Ports";
+"Nothing is listening"      = "Nothing is listening";
+"Stop this process"         = "Stop this process";
+"Stop %@?"                  = "Stop %@?";
+"Stop"                      = "Stop";
+"Could not stop %@"         = "Could not stop %@";
+
+/* — Shortcuts — */
+"Shortcuts"                     = "Shortcuts";
+"Requires the Shortcuts app"    = "Requires the Shortcuts app";
+"No shortcuts yet"              = "No shortcuts yet";
+"Open Shortcuts"                = "Open Shortcuts";
+"%@ finished"                   = "%@ finished";
+"The shortcut reported an error" = "The shortcut reported an error";
+
+/* — Bluetooth — */
+"Bluetooth"                 = "Bluetooth";
+"No paired devices"         = "No paired devices";
+"Connected"                 = "Connected";
+"Click to connect"          = "Click to connect";
+"Click to disconnect"       = "Click to disconnect";
+"Could not connect to %@"   = "Could not connect to %@";
+"Could not disconnect %@"   = "Could not disconnect %@";
+
+/* — Trash — */
+"Trash"                     = "Trash";
+"Nothing to empty"          = "Nothing to empty";
+"Empty"                     = "Empty";
+"Delete"                    = "Delete";
+"Full Disk Access needed"   = "Full Disk Access needed";
+"macOS protects the Trash folder even inside your home directory." = "macOS protects the Trash folder even inside your home directory.";
+"Open Privacy settings"     = "Open Privacy settings";
+
+/* — Finder — */
+"Finder"                        = "Finder";
+"Show hidden files"             = "Show hidden files";
+"Show path bar"                 = "Show path bar";
+"Show status bar"               = "Show status bar";
+"Show desktop icons"            = "Show desktop icons";
+"Each change relaunches Finder" = "Each change relaunches Finder";
+"Relaunching Finder…"           = "Relaunching Finder…";

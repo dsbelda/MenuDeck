@@ -1,2 +1,5 @@
 /* Shown by the system in the Audio Capture permission prompt. */
 "NSAudioCaptureUsageDescription" = "MenuDeck needs Audio Capture access to intercept and control individual app volume.";
+
+/* Shown by the system in the Bluetooth permission prompt. */
+"NSBluetoothAlwaysUsageDescription" = "MenuDeck lists your paired Bluetooth devices so you can connect and disconnect them from the menu bar.";
