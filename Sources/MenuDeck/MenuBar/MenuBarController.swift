@@ -42,6 +42,8 @@ final class MenuBarController: NSObject {
     @objc private func settingsDidChange() {
         guard currentMode != appliedMode else { return }
         refreshDisplay()
+        // Switching into or out of "icon" is what creates or retires the timer.
+        syncDisplayTimer()
     }
 
     private var currentMode: String {
@@ -105,8 +107,23 @@ final class MenuBarController: NSObject {
 
     // MARK: – Display timer
 
+    /// Only the live readouts need a tick. In the default "icon" mode the status
+    /// item is a static image, so a timer there would wake the CPU every five
+    /// seconds to redraw a glyph that never changes.
+    private var modeNeedsTimer: Bool { currentMode != "icon" }
+
     private func startDisplayTimer() {
         refreshDisplay()
+        syncDisplayTimer()
+    }
+
+    private func syncDisplayTimer() {
+        guard modeNeedsTimer else {
+            displayTimer?.invalidate()
+            displayTimer = nil
+            return
+        }
+        guard displayTimer == nil else { return }
         displayTimer = .repeating(every: 5, tolerance: 1) { [weak self] _ in
             Task { @MainActor in self?.refreshDisplay() }
         }
@@ -145,19 +162,31 @@ final class MenuBarController: NSObject {
         }
     }
 
+    /// Built once. The readouts re-run this every tick, and the font lookup plus
+    /// dictionary allocation were the only work in the path that did not depend
+    /// on the value being drawn.
+    private static let titleAttributes: [NSAttributedString.Key: Any] = [
+        .font: NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .medium)
+    ]
+
+    /// The mark is drawn with Core Graphics, so rendering it per tick meant an
+    /// NSImage allocation and a full redraw to produce an identical result.
+    private static let statusImage = MenuDeckGlyph.statusBarImage()
+    private static let emptyTitle = NSAttributedString(string: "")
+
     private func setTitle(_ text: String) {
         guard let button = statusItem.button else { return }
         button.image = nil
-        let attrs: [NSAttributedString.Key: Any] = [
-            .font: NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .medium)
-        ]
-        button.attributedTitle = NSAttributedString(string: text, attributes: attrs)
+        button.attributedTitle = NSAttributedString(
+            string: text,
+            attributes: Self.titleAttributes
+        )
     }
 
     private func applyIcon() {
         guard let button = statusItem.button else { return }
-        button.attributedTitle = NSAttributedString(string: "")
-        button.image = MenuDeckGlyph.statusBarImage()
+        button.attributedTitle = Self.emptyTitle
+        button.image = Self.statusImage
     }
 
     // MARK: – Popover
