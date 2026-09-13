@@ -6,6 +6,22 @@ RELEASE_DIR = .build/release
 
 .PHONY: build bundle release run install clean icon
 
+# SwiftUI's property wrappers (@State, @Binding, …) are macros, and the compiler
+# plugin that expands them ships with Xcode but not with the Command Line Tools.
+# When xcode-select points at the CLT every one of them fails with "plugin for
+# module 'SwiftUIMacros' not found", which reads like a code error and is not.
+#
+# Point the build at Xcode's toolchain for this invocation only, rather than
+# asking anyone to run `sudo xcode-select -s`, which would change the toolchain
+# for everything else on the machine.
+XCODE_DEVELOPER := /Applications/Xcode.app/Contents/Developer
+HAVE_MACRO_PLUGIN := $(shell find "$$(xcode-select -p)" -name libSwiftUIMacros.dylib 2>/dev/null | head -1)
+ifeq ($(HAVE_MACRO_PLUGIN),)
+ifneq ($(wildcard $(XCODE_DEVELOPER)),)
+export DEVELOPER_DIR := $(XCODE_DEVELOPER)
+endif
+endif
+
 build:
 	swift build 2>&1
 

@@ -14,6 +14,7 @@ struct MenuDeckPopoverView: View {
         TileLayout(rawValue: tileLayoutRaw) ?? .grid
     }
     @ObservedObject private var state = PopoverState.shared
+    @ObservedObject private var login = LoginItemManager.shared
 
     private var expandedId: String? {
         get { state.expandedID }
@@ -90,6 +91,7 @@ struct MenuDeckPopoverView: View {
             // Settings / back button — icon morphs between states
             Button {
                 screen = screen == .main ? .settings : .main
+                if screen == .settings { login.refresh() }
             } label: {
                 Image(systemName: screen == .settings ? "chevron.left" : "gearshape.fill")
                     .font(.system(size: screen == .settings ? 11 : 12, weight: .medium))
@@ -358,6 +360,8 @@ struct MenuDeckPopoverView: View {
 
                 sectionLabel("Application")
 
+                launchAtLogin
+
                 HStack {
                     Text("Version")
                         .font(.system(size: 12))
@@ -388,6 +392,71 @@ struct MenuDeckPopoverView: View {
             .scrollBounceBehavior(.basedOnSize)
         }
         .frame(width: Self.panelWidth)
+    }
+
+    // MARK: – Launch at login
+
+    private var launchAtLogin: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            SettingsRow(label: "Open at login", icon: "power") {
+                Toggle("", isOn: Binding(
+                    get: { login.isEnabled },
+                    set: { login.setEnabled($0) }
+                ))
+                .toggleStyle(.switch)
+                .labelsHidden()
+                .controlSize(.small)
+            }
+
+            if login.needsApproval {
+                // The registration went through but macOS is holding it, so
+                // nothing would actually start at login until it is approved.
+                loginNote(
+                    icon: "exclamationmark.triangle.fill",
+                    tint: .orange,
+                    text: Text("Waiting for approval in System Settings")
+                ) {
+                    Button { login.openLoginItemsSettings() } label: {
+                        Text("Open")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(.orange)
+                    }
+                    .buttonStyle(.plain)
+                }
+            } else if login.isEnabled && !login.isInApplications {
+                loginNote(
+                    icon: "exclamationmark.triangle.fill",
+                    tint: .orange,
+                    text: Text("This copy is not in /Applications, so login will break if it moves")
+                ) { EmptyView() }
+            } else if let error = login.lastError {
+                loginNote(
+                    icon: "xmark.circle.fill",
+                    tint: .red,
+                    text: Text(error)
+                ) { EmptyView() }
+            }
+        }
+    }
+
+    private func loginNote<Trailing: View>(
+        icon: String,
+        tint: Color,
+        text: Text,
+        @ViewBuilder trailing: () -> Trailing
+    ) -> some View {
+        HStack(alignment: .top, spacing: 5) {
+            Image(systemName: icon)
+                .font(.system(size: 9))
+                .foregroundStyle(tint)
+            text
+                .font(.system(size: 9))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 4)
+            trailing()
+        }
+        .padding(.horizontal, 2)
     }
 
     private static let appVersion =
