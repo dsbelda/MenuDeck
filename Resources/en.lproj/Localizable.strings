@@ -229,3 +229,8 @@
 "Since full charge"                      = "Since full charge";
 "Last at 100%% on %@"                    = "Last at 100%% on %@";
 "No full charge inside the log's window" = "No full charge inside the log's window";
+
+/* — Launch at login — */
+"Open at login"                             = "Open at login";
+"Waiting for approval in System Settings"   = "Waiting for approval in System Settings";
+"This copy is not in /Applications, so login will break if it moves" = "This copy is not in /Applications, so login will break if it moves";

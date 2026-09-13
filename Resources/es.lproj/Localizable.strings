@@ -226,3 +226,8 @@
 "Since full charge"                      = "Desde la carga";
 "Last at 100%% on %@"                    = "Última vez al 100%% el %@";
 "No full charge inside the log's window" = "No hay ninguna carga completa dentro del registro";
+
+/* — Inicio automático — */
+"Open at login"                             = "Abrir al iniciar sesión";
+"Waiting for approval in System Settings"   = "Esperando aprobación en Ajustes del Sistema";
+"This copy is not in /Applications, so login will break if it moves" = "Esta copia no está en /Aplicaciones; el inicio fallará si se mueve";
