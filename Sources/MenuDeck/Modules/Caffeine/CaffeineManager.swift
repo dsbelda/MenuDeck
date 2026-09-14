@@ -31,8 +31,11 @@ final class CaffeineManager: ObservableObject {
 
     private func activate() {
         var id: IOPMAssertionID = 0
+        // The display assertion keeps the screen on *and* implies the system
+        // one, which PreventUserIdleSystemSleep alone does not: with that type
+        // the Mac stays up but the display still dims and locks.
         let result = IOPMAssertionCreateWithName(
-            kIOPMAssertionTypePreventUserIdleSystemSleep as CFString,
+            kIOPMAssertionTypePreventUserIdleDisplaySleep as CFString,
             IOPMAssertionLevel(kIOPMAssertionLevelOn),
             "MenuDeck is keeping the Mac awake" as CFString,
             &id
