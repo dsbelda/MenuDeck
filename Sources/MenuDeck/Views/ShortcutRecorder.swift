@@ -11,6 +11,7 @@ struct ShortcutRecorder: View {
 
     @ObservedObject private var hotkeys = HotkeyManager.shared
     @State private var isRecording = false
+    @State private var isHovered = false
     @State private var monitor: Any?
     @State private var rejected = false
 
@@ -21,22 +22,25 @@ struct ShortcutRecorder: View {
             isRecording ? stopRecording() : startRecording()
         } label: {
             Text(label)
-                .font(.system(size: 10, weight: .medium, design: .rounded))
+                .font(.system(size: 10, weight: .semibold, design: .rounded))
                 .foregroundStyle(foreground)
                 .lineLimit(1)
-                .frame(minWidth: 52)
+                .frame(minWidth: 50)
                 .padding(.horizontal, 6)
                 .padding(.vertical, 3)
                 .background(background, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
                 .overlay(
                     RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .strokeBorder(borderColor, lineWidth: 0.5)
+                        .strokeBorder(borderColor, lineWidth: isRecording ? 1 : 0.5)
                 )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(DeckPressStyle(scale: 0.95))
         .disabled(!isEnabled)
         .opacity(isEnabled ? 1 : 0.4)
         .help(helpText)
+        .onHover { isHovered = $0 }
+        .animation(.easeOut(duration: 0.12), value: isHovered)
+        .animation(.easeOut(duration: 0.12), value: isRecording)
         // A recorder left armed would keep swallowing keystrokes after the
         // popover closes.
         .whileShown(stop: stopRecording)
@@ -54,15 +58,21 @@ struct ShortcutRecorder: View {
 
     private var foreground: Color {
         if isRecording { return rejected ? .orange : .accentColor }
-        return shortcut == nil ? .secondary : .primary
+        return shortcut == nil ? (isHovered ? .primary : .secondary) : .primary
     }
 
     private var background: Color {
-        isRecording ? Color.accentColor.opacity(0.12) : Color.primary.opacity(0.06)
+        if isRecording {
+            return (rejected ? Color.orange : Color.accentColor).opacity(0.14)
+        }
+        return Color.primary.opacity(isHovered ? 0.10 : 0.055)
     }
 
     private var borderColor: Color {
-        isRecording ? Color.accentColor.opacity(0.45) : Color.primary.opacity(0.10)
+        if isRecording {
+            return (rejected ? Color.orange : Color.accentColor).opacity(0.55)
+        }
+        return Color.primary.opacity(isHovered ? 0.16 : 0.09)
     }
 
     private var helpText: String {
@@ -81,9 +91,6 @@ struct ShortcutRecorder: View {
         isRecording = true
         rejected = false
 
-        // A local monitor, not a global one: the popover is key while the
-        // settings screen is up, so the keystrokes land here, and returning nil
-        // stops them reaching the rest of the app.
         monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
             handle(event)
             return nil
@@ -111,8 +118,6 @@ struct ShortcutRecorder: View {
         }
 
         guard let candidate = Shortcut(event: event) else {
-            // Missing ⌘/⌥/⌃ — stay armed and flag it rather than silently
-            // dropping the keystroke.
             rejected = true
             return
         }

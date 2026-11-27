@@ -6,12 +6,12 @@ struct ScreenshotView: View {
     @State private var delay: Int = 0
 
     var body: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: 10) {
             captureButtons
-            Divider().padding(.horizontal, 14).opacity(0.10)
-            optionsRow
+            optionsCard
             feedbackRow
         }
+        .padding(DeckMetrics.horizontalPadding)
         .opacity(manager.isCapturing ? 0.5 : 1)
         .allowsHitTesting(!manager.isCapturing)
         .animation(.easeInOut(duration: 0.15), value: manager.isCapturing)
@@ -31,38 +31,47 @@ struct ScreenshotView: View {
                 manager.capture(mode: .window, target: target, delay: delay)
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.top, 12)
-        .padding(.bottom, 10)
     }
 
-    // MARK: – Options row
+    // MARK: – Options card
 
-    private var optionsRow: some View {
-        HStack(spacing: 0) {
-            // Destination
-            HStack(spacing: 5) {
-                Image(systemName: target == .desktop ? "folder" : "doc.on.clipboard")
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 14)
+    private var optionsCard: some View {
+        DeckGroupedList(dividerInset: 38) {
+            HStack(spacing: 8) {
+                DeckIconBadge(
+                    symbol: target == .desktop ? "folder.fill" : "doc.on.clipboard.fill",
+                    tint: .teal,
+                    size: 22,
+                    iconSize: 10,
+                    cornerRadius: 6
+                )
+                Text("Save to")
+                    .font(.system(size: 11.5, weight: .medium))
+                Spacer()
                 Picker("", selection: $target) {
                     Text("Desktop").tag(ScreenshotManager.SaveTarget.desktop)
                     Text("Clipboard").tag(ScreenshotManager.SaveTarget.clipboard)
                 }
                 .labelsHidden()
                 .pickerStyle(.menu)
-                .controlSize(.mini)
+                .controlSize(.small)
+                .fixedSize()
             }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
 
-            Spacer()
-
-            // Timer delay
-            HStack(spacing: 5) {
-                Image(systemName: "timer")
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 14)
+            HStack(spacing: 8) {
+                DeckIconBadge(
+                    symbol: "timer",
+                    tint: .teal,
+                    size: 22,
+                    iconSize: 10,
+                    isActive: delay > 0,
+                    cornerRadius: 6
+                )
+                Text("Delay")
+                    .font(.system(size: 11.5, weight: .medium))
+                Spacer()
                 Picker("", selection: $delay) {
                     Text("No delay").tag(0)
                     Text("3 s").tag(3)
@@ -71,11 +80,12 @@ struct ScreenshotView: View {
                 }
                 .labelsHidden()
                 .pickerStyle(.menu)
-                .controlSize(.mini)
+                .controlSize(.small)
+                .fixedSize()
             }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
     }
 
     // MARK: – Feedback
@@ -87,62 +97,45 @@ struct ScreenshotView: View {
             EmptyView()
 
         case .cancelled:
-            feedback(icon: "exclamationmark.triangle.fill", tint: .orange) {
-                Text("Capture cancelled")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
-            }
+            DeckStatusBanner(
+                icon: "exclamationmark.triangle.fill",
+                tint: .orange,
+                title: Text("Capture cancelled")
+            )
 
         case .failed(let message):
-            feedback(icon: "exclamationmark.triangle.fill", tint: .orange) {
-                Text(message)
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
-            }
+            DeckStatusBanner(
+                icon: "exclamationmark.triangle.fill",
+                tint: .orange,
+                title: Text(message)
+            )
 
         case .clipboard:
-            feedback(icon: "checkmark.circle.fill", tint: .green) {
-                Text("Copied to clipboard")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
-            }
+            DeckStatusBanner(
+                icon: "checkmark.circle.fill",
+                tint: .green,
+                title: Text("Copied to clipboard")
+            )
 
         case .file(let url):
-            feedback(icon: "checkmark.circle.fill", tint: .green) {
-                Text(url.lastPathComponent)
-                    .font(.system(size: 10, design: .monospaced))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                Spacer()
-                Button {
+            DeckStatusBanner(
+                icon: "checkmark.circle.fill",
+                tint: .green,
+                title: Text(url.lastPathComponent)
+            ) {
+                DeckIconButton(
+                    symbol: "arrow.right.circle.fill",
+                    size: 22,
+                    iconSize: 12,
+                    tint: .green,
+                    hoverTint: .green,
+                    restingFill: 0.08
+                ) {
                     NSWorkspace.shared.activateFileViewerSelecting([url])
-                } label: {
-                    Image(systemName: "arrow.right.circle")
-                        .font(.system(size: 12))
-                        .foregroundStyle(.secondary)
                 }
-                .buttonStyle(.plain)
                 .help("Show in Finder")
             }
         }
-    }
-
-    private func feedback<C: View>(
-        icon: String,
-        tint: Color,
-        @ViewBuilder content: () -> C
-    ) -> some View {
-        HStack(spacing: 6) {
-            Image(systemName: icon)
-                .font(.system(size: 10))
-                .foregroundStyle(tint)
-            content()
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 14)
-        .padding(.bottom, 8)
-        .transition(.opacity)
     }
 }
 
@@ -154,26 +147,40 @@ private struct CaptureButton: View {
     let tint: Color
     let action: () -> Void
 
+    @State private var isHovered = false
+
     var body: some View {
         Button(action: action) {
             VStack(spacing: 7) {
                 Image(systemName: icon)
-                    .font(.system(size: 22, weight: .light))
+                    .font(.system(size: 20, weight: .medium))
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(tint)
-                    .frame(height: 26)
+                    .frame(width: 34, height: 34)
+                    .background(
+                        tint.opacity(isHovered ? 0.22 : 0.14),
+                        in: RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    )
+
                 Text(title)
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 10.5, weight: .semibold))
+                    .foregroundStyle(isHovered ? .primary : .secondary)
+                    .lineLimit(1)
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 13)
-            .background(tint.opacity(0.10), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(tint.opacity(0.20), lineWidth: 0.5)
+            .padding(.vertical, 12)
+            .background(
+                tint.opacity(isHovered ? 0.14 : 0.075),
+                in: RoundedRectangle(cornerRadius: 11, style: .continuous)
             )
+            .overlay(
+                RoundedRectangle(cornerRadius: 11, style: .continuous)
+                    .strokeBorder(tint.opacity(isHovered ? 0.34 : 0.18), lineWidth: 0.5)
+            )
+            .contentShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(DeckPressStyle(scale: 0.96))
+        .onHover { isHovered = $0 }
+        .animation(.easeOut(duration: 0.12), value: isHovered)
     }
 }

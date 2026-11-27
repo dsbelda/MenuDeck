@@ -27,28 +27,27 @@ struct UninstallerView: View {
     private var appList: some View {
         VStack(spacing: 0) {
             filterBar
-            Divider().opacity(0.08)
+            DeckHairline()
 
             if mgr.isLoadingApps {
-                ProgressView().controlSize(.small)
+                ProgressView()
+                    .controlSize(.small)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if filtered.isEmpty {
-                Text("No apps match “\(query)”")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.tertiary)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                DeckEmptyState(
+                    symbol: "magnifyingglass",
+                    tint: .secondary,
+                    title: "No apps match “\(query)”",
+                    minHeight: 200
+                )
             } else {
-                // Only the rows scroll: the filter field above stays put.
                 ScrollView(.vertical) {
-                    VStack(spacing: 0) {
+                    LazyVStack(spacing: 2) {
                         ForEach(filtered) { app in
                             appRow(app)
-                            if app.id != filtered.last?.id {
-                                Divider().padding(.leading, 38).opacity(0.06)
-                            }
                         }
                     }
-                    .padding(.bottom, 4)
+                    .padding(.vertical, 6)
                 }
                 .scrollBounceBehavior(.basedOnSize)
             }
@@ -58,60 +57,68 @@ struct UninstallerView: View {
     private var filterBar: some View {
         HStack(spacing: 6) {
             Image(systemName: "magnifyingglass")
-                .font(.system(size: 10, weight: .medium))
+                .font(.system(size: 10.5, weight: .medium))
                 .foregroundStyle(.tertiary)
 
             TextField("Filter apps", text: $query)
                 .textFieldStyle(.plain)
-                .font(.system(size: 11))
+                .font(.system(size: 11.5))
 
             if query.isEmpty {
                 Text("\(mgr.apps.count)")
-                    .font(.system(size: 10, design: .monospaced))
-                    .foregroundStyle(.quaternary)
+                    .font(.system(size: 10, weight: .medium, design: .monospaced))
+                    .foregroundStyle(.tertiary)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 1.5)
+                    .background(Color.primary.opacity(0.06), in: Capsule())
             } else {
                 Button { query = "" } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 10))
-                        .foregroundStyle(.tertiary)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
             }
         }
         .padding(.horizontal, 9)
-        .padding(.vertical, 5)
-        .background(.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
-        .padding(.horizontal, 10)
-        .padding(.vertical, 7)
+        .padding(.vertical, 6)
+        .background(Color.primary.opacity(0.055), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.5)
+        )
+        .padding(.horizontal, DeckMetrics.horizontalPadding)
+        .padding(.vertical, 8)
     }
 
     private func appRow(_ app: UninstallerManager.App) -> some View {
         Button { mgr.inspect(app) } label: {
-            HStack(spacing: 9) {
-                AppIcon(path: app.url.path, size: 20)
+            DeckHoverRow(horizontalPadding: 8, verticalPadding: 6, horizontalInset: 6) { isHovered in
+                HStack(spacing: 9) {
+                    AppIcon(path: app.url.path, size: 22)
 
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(app.name)
-                        .font(.system(size: 11, weight: .medium))
-                        .lineLimit(1)
-                    if let version = app.version {
-                        Text(version)
-                            .font(.system(size: 9))
-                            .foregroundStyle(.tertiary)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(app.name)
+                            .font(.system(size: 11.5, weight: .medium))
+                            .foregroundStyle(.primary)
+                            .lineLimit(1)
+                        if let version = app.version {
+                            Text(version)
+                                .font(.system(size: 9.5))
+                                .foregroundStyle(.tertiary)
+                                .lineLimit(1)
+                        }
                     }
+
+                    Spacer(minLength: 4)
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 8.5, weight: .bold))
+                        .foregroundStyle(isHovered ? .secondary : .tertiary)
                 }
-
-                Spacer(minLength: 4)
-
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 8, weight: .bold))
-                    .foregroundStyle(.tertiary)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(DeckPressStyle(scale: 0.985))
     }
 
     // MARK: – Inspector
@@ -119,41 +126,45 @@ struct UninstallerView: View {
     private func inspector(_ app: UninstallerManager.App) -> some View {
         VStack(spacing: 0) {
             HStack(spacing: 8) {
-                Button { mgr.backToList() } label: {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
+                DeckIconButton(
+                    symbol: "chevron.left",
+                    size: 22,
+                    iconSize: 10,
+                    weight: .semibold,
+                    action: { mgr.backToList() }
+                )
 
-                AppIcon(path: app.url.path, size: 18)
+                AppIcon(path: app.url.path, size: 20)
 
                 Text(app.name)
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.system(size: 11.5, weight: .semibold))
                     .lineLimit(1)
 
                 Spacer(minLength: 4)
 
                 Text(formatBytes(mgr.selectedBytes))
-                    .font(.system(size: 11, weight: .semibold, design: .rounded).monospacedDigit())
+                    .font(.system(size: 10.5, weight: .bold, design: .rounded).monospacedDigit())
                     .foregroundStyle(Color.red)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 2.5)
+                    .background(Color.red.opacity(0.12), in: Capsule())
             }
-            .padding(.horizontal, 12)
+            .padding(.horizontal, DeckMetrics.horizontalPadding)
             .padding(.vertical, 8)
 
-            Divider().opacity(0.08)
+            DeckHairline()
 
             if mgr.isScanning {
-                ProgressView().controlSize(.small)
+                ProgressView()
+                    .controlSize(.small)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                // The app's name and the total stay above, the confirm button
-                // below, and only the list of items to remove moves.
                 ScrollView(.vertical) {
-                    VStack(spacing: 0) {
+                    VStack(spacing: 8) {
                         warnings(app)
                         itemList(app)
                     }
+                    .padding(DeckMetrics.horizontalPadding)
                 }
                 .scrollBounceBehavior(.basedOnSize)
 
@@ -165,63 +176,41 @@ struct UninstallerView: View {
     @ViewBuilder
     private func warnings(_ app: UninstallerManager.App) -> some View {
         if let running = mgr.runningInstance(of: app) {
-            banner(icon: "exclamationmark.triangle.fill", tint: .orange) {
-                HStack(spacing: 6) {
-                    Text("\(app.name) is running")
-                        .font(.system(size: 10))
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Button { running.terminate() } label: {
-                        Text("Quit it")
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(.orange)
-                    }
-                    .buttonStyle(.plain)
+            DeckStatusBanner(
+                icon: "exclamationmark.triangle.fill",
+                tint: .orange,
+                title: Text("\(app.name) is running")
+            ) {
+                Button { running.terminate() } label: {
+                    Text("Quit it")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(.orange)
                 }
+                .buttonStyle(.plain)
             }
         }
 
         if let token = app.caskToken {
-            // Trashing the bundle would leave Homebrew still believing the cask
-            // is installed, and its next upgrade would fail confusingly.
-            banner(icon: "mug.fill", tint: .orange) {
-                Text("Installed with Homebrew — use brew uninstall --cask \(token)")
-                    .font(.system(size: 9))
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+            DeckStatusBanner(
+                icon: "mug.fill",
+                tint: .orange,
+                title: Text("Installed with Homebrew — use brew uninstall --cask \(token)")
+            )
         }
 
         if mgr.scanIncomplete {
-            banner(icon: "lock.fill", tint: .secondary) {
-                Text("Some folders need Full Disk Access, so this list may be short")
-                    .font(.system(size: 9))
-                    .foregroundStyle(.tertiary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+            DeckStatusBanner(
+                icon: "lock.fill",
+                tint: .secondary,
+                title: Text("Some folders need Full Disk Access, so this list may be short")
+            )
         }
-    }
-
-    private func banner<C: View>(
-        icon: String, tint: Color, @ViewBuilder content: () -> C
-    ) -> some View {
-        HStack(alignment: .top, spacing: 6) {
-            Image(systemName: icon)
-                .font(.system(size: 9))
-                .foregroundStyle(tint)
-            content()
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 5)
-        .background(tint.opacity(0.07))
     }
 
     private func itemList(_ app: UninstallerManager.App) -> some View {
-        VStack(spacing: 0) {
+        DeckGroupedList(dividerInset: 30) {
             bundleRow(app)
             ForEach(mgr.leftovers) { leftover in
-                Divider().padding(.leading, 30).opacity(0.06)
                 leftoverRow(leftover)
             }
         }
@@ -230,87 +219,92 @@ struct UninstallerView: View {
     private func bundleRow(_ app: UninstallerManager.App) -> some View {
         HStack(spacing: 8) {
             Image(systemName: "checkmark.square.fill")
-                .font(.system(size: 11))
+                .font(.system(size: 12))
                 .foregroundStyle(Color.red)
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(app.url.lastPathComponent)
-                    .font(.system(size: 10, weight: .medium))
+                    .font(.system(size: 10.5, weight: .semibold))
                     .lineLimit(1)
                 Text("The app itself")
-                    .font(.system(size: 9))
-                    .foregroundStyle(.tertiary)
+                    .font(.system(size: 9.5))
+                    .foregroundStyle(.secondary)
             }
 
             Spacer(minLength: 4)
 
             Text(formatBytes(mgr.bundleBytes))
-                .font(.system(size: 9, design: .monospaced))
-                .foregroundStyle(.tertiary)
+                .font(.system(size: 9.5, weight: .medium, design: .monospaced))
+                .foregroundStyle(.secondary)
         }
-        .padding(.horizontal, 12)
+        .padding(.horizontal, 10)
         .padding(.vertical, 6)
     }
 
     private func leftoverRow(_ leftover: UninstallerManager.Leftover) -> some View {
         let isOn = mgr.selection.contains(leftover.id)
         return Button { mgr.toggle(leftover) } label: {
-            HStack(spacing: 8) {
-                Image(systemName: isOn ? "checkmark.square.fill" : "square")
-                    .font(.system(size: 11))
-                    .foregroundStyle(isOn ? AnyShapeStyle(Color.red) : AnyShapeStyle(.tertiary))
+            DeckHoverRow(horizontalPadding: 10, verticalPadding: 6, horizontalInset: 0) { _ in
+                HStack(spacing: 8) {
+                    Image(systemName: isOn ? "checkmark.square.fill" : "square")
+                        .font(.system(size: 12))
+                        .foregroundStyle(isOn ? AnyShapeStyle(Color.red) : AnyShapeStyle(.tertiary))
 
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(leftover.displayName)
-                        .font(.system(size: 10))
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                    HStack(spacing: 4) {
-                        Text(leftover.category)
-                            .font(.system(size: 9))
-                            .foregroundStyle(.tertiary)
-                        if leftover.match == .appName {
-                            Text("name match")
-                                .font(.system(size: 8, weight: .semibold))
-                                .foregroundStyle(.orange)
-                                .padding(.horizontal, 3)
-                                .padding(.vertical, 0.5)
-                                .background(Color.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 3))
+                    VStack(alignment: .leading, spacing: 1.5) {
+                        Text(leftover.displayName)
+                            .font(.system(size: 10.5, weight: .medium))
+                            .foregroundStyle(isOn ? .primary : .secondary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                        HStack(spacing: 4) {
+                            Text(leftover.category)
+                                .font(.system(size: 9))
+                                .foregroundStyle(.tertiary)
+                            if leftover.match == .appName {
+                                Text("name match")
+                                    .font(.system(size: 8, weight: .semibold))
+                                    .foregroundStyle(.orange)
+                                    .padding(.horizontal, 4)
+                                    .padding(.vertical, 0.5)
+                                    .background(Color.orange.opacity(0.13), in: Capsule())
+                            }
                         }
                     }
+
+                    Spacer(minLength: 4)
+
+                    Text(formatBytes(leftover.bytes))
+                        .font(.system(size: 9.5, design: .monospaced))
+                        .foregroundStyle(.tertiary)
                 }
-
-                Spacer(minLength: 4)
-
-                Text(formatBytes(leftover.bytes))
-                    .font(.system(size: 9, design: .monospaced))
-                    .foregroundStyle(.tertiary)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
 
     private func actionBar(_ app: UninstallerManager.App) -> some View {
-        VStack(spacing: 6) {
-            Divider().opacity(0.08)
-            Button { mgr.uninstall(app) } label: {
+        let isRunning = mgr.runningInstance(of: app) != nil
+        return VStack(spacing: 5) {
+            DeckHairline()
+
+            DeckActionButton(
+                variant: .solid(.red),
+                cornerRadius: 9,
+                verticalPadding: 8,
+                fullWidth: true
+            ) {
+                mgr.uninstall(app)
+            } label: {
                 Label("Move to Trash", systemImage: "trash")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 7)
-                    .background(Color.red, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .font(.system(size: 11.5, weight: .semibold))
             }
-            .buttonStyle(.plain)
-            .disabled(mgr.runningInstance(of: app) != nil)
-            .opacity(mgr.runningInstance(of: app) != nil ? 0.4 : 1)
-            .padding(.horizontal, 12)
+            .disabled(isRunning)
+            .opacity(isRunning ? 0.4 : 1)
+            .padding(.horizontal, DeckMetrics.horizontalPadding)
+            .padding(.top, 4)
 
             Text("Nothing is deleted — everything goes to the Trash")
-                .font(.system(size: 9))
+                .font(.system(size: 9.5))
                 .foregroundStyle(.tertiary)
                 .padding(.bottom, 8)
         }
@@ -322,7 +316,7 @@ struct UninstallerView: View {
         VStack(spacing: 10) {
             ProgressView().controlSize(.small)
             Text("Moving \(app.name) to the Trash…")
-                .font(.system(size: 11))
+                .font(.system(size: 11.5, weight: .medium))
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -331,36 +325,35 @@ struct UninstallerView: View {
     private func summary(
         _ app: UninstallerManager.App, moved: Int, failed: [String]
     ) -> some View {
-        VStack(spacing: 8) {
-            Image(systemName: failed.isEmpty ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
-                .font(.system(size: 24))
-                .foregroundStyle(failed.isEmpty ? Color.green : Color.orange)
+        DeckEmptyState(
+            symbol: failed.isEmpty ? "checkmark.circle.fill" : "exclamationmark.triangle.fill",
+            tint: failed.isEmpty ? .green : .orange,
+            title: failed.isEmpty
+                ? "Moved \(moved) items to the Trash"
+                : "Could not move some items",
+            minHeight: 220
+        ) {
+            VStack(spacing: 8) {
+                if !failed.isEmpty {
+                    Text(failed.prefix(3).joined(separator: ", "))
+                        .font(.system(size: 9.5))
+                        .foregroundStyle(.tertiary)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.center)
+                }
 
-            Text(failed.isEmpty
-                 ? "Moved \(moved) items to the Trash"
-                 : "Could not move some items")
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-
-            if !failed.isEmpty {
-                Text(failed.prefix(3).joined(separator: ", "))
-                    .font(.system(size: 9))
-                    .foregroundStyle(.tertiary)
-                    .lineLimit(2)
-                    .padding(.horizontal, 16)
+                DeckActionButton(
+                    variant: .tinted(.red),
+                    cornerRadius: 16,
+                    horizontalPadding: 14,
+                    verticalPadding: 5
+                ) {
+                    mgr.backToList()
+                } label: {
+                    Text("Done")
+                        .font(.system(size: 10.5, weight: .semibold))
+                }
             }
-
-            Button { mgr.backToList() } label: {
-                Text("Done")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(Color.red)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 5)
-                    .background(Color.red.opacity(0.10), in: Capsule())
-            }
-            .buttonStyle(.plain)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

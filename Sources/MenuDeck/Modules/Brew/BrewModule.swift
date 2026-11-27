@@ -6,6 +6,7 @@ final class BrewModule: Module {
     /// Homebrew's own mark is a beer mug.
     let sfSymbol = "mug.fill"
     let tintColor: Color = .orange
+    let providesOwnScrolling = true
 
     @MainActor func makeContent() -> AnyView { AnyView(BrewView()) }
 

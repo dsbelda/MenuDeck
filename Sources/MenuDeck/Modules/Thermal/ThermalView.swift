@@ -20,9 +20,6 @@ final class ThermalViewModel: ObservableObject {
         Task {
             smcError = await SMCManager.shared.openFailure()
 
-            // Probing every selector and enumerating the whole key space is
-            // ~100 blocking IOKit calls. It is debug instrumentation, and it
-            // used to run on the main thread on every tile tap.
             if UserDefaults.standard.bool(forKey: Self.diagnosticsKey) {
                 diagnostics = await SMCManager.shared.runDiagnostics()
             }
@@ -39,8 +36,6 @@ final class ThermalViewModel: ObservableObject {
         timer = nil
     }
 
-    /// Assigning a @Published property redraws the panel even when the new
-    /// value is the old one, and most refreshes of a Mac at rest change nothing.
     private func refresh() {
         let state = ProcessInfo.processInfo.thermalState
         if state != thermalState { thermalState = state }
@@ -56,7 +51,7 @@ struct ThermalView: View {
     @State private var showLogs = false
 
     var body: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: 10) {
             thermalHero
 
             if vm.readings.isEmpty {
@@ -68,154 +63,138 @@ struct ThermalView: View {
                 }
             }
 
-            // Persistent logs panel — always accessible, unaffected by refresh
             if let diag = vm.diagnostics {
                 logsPanel(diag)
             }
         }
+        .padding(DeckMetrics.horizontalPadding)
         .whileShown(vm.start, stop: vm.stop)
-    }
-
-    private func logsPanel(_ text: String) -> some View {
-        VStack(spacing: 0) {
-            Divider().padding(.horizontal, 14).opacity(0.08)
-
-            Button {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                    showLogs.toggle()
-                }
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "terminal")
-                        .font(.system(size: 10, weight: .medium))
-                    Text("SMC Logs")
-                        .font(.system(size: 11, weight: .medium))
-                    Spacer()
-                    Image(systemName: showLogs ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 9, weight: .bold))
-                }
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-
-            if showLogs {
-                ScrollView(.vertical, showsIndicators: true) {
-                    Text(text)
-                        .font(.system(size: 9, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                        .textSelection(.enabled)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(8)
-                }
-                .frame(maxHeight: 240)
-                .background(.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 6))
-                .padding(.horizontal, 10)
-                .padding(.bottom, 8)
-                .transition(.opacity.combined(with: .move(edge: .top)))
-            }
-        }
     }
 
     // MARK: – Hero
 
     private var thermalHero: some View {
-        HStack(alignment: .center, spacing: 0) {
-            if let maxTemp = vm.maxCPUTemp {
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(alignment: .firstTextBaseline, spacing: 3) {
-                        Text(String(format: "%.0f", maxTemp))
-                            .font(.system(size: 36, weight: .bold, design: .rounded).monospacedDigit())
-                            .foregroundStyle(tempColor(maxTemp).gradient)
-                        Text("°C")
-                            .font(.system(size: 18, weight: .semibold, design: .rounded))
+        DeckCard(padding: 12) {
+            HStack(alignment: .center, spacing: 8) {
+                if let maxTemp = vm.maxCPUTemp {
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(alignment: .firstTextBaseline, spacing: 3) {
+                            Text(String(format: "%.0f", maxTemp))
+                                .font(.system(size: 34, weight: .bold, design: .rounded).monospacedDigit())
+                                .foregroundStyle(tempColor(maxTemp).gradient)
+                                .contentTransition(.numericText())
+                            Text("°C")
+                                .font(.system(size: 17, weight: .semibold, design: .rounded))
+                                .foregroundStyle(.secondary)
+                        }
+                        Text("CPU peak")
+                            .font(.system(size: 10, weight: .medium))
                             .foregroundStyle(.secondary)
-                            .offset(y: -2)
                     }
-                    Text("CPU peak")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(.tertiary)
+                } else {
+                    Text("No sensor data")
+                        .font(.system(size: 12.5, weight: .medium))
+                        .foregroundStyle(.secondary)
                 }
-            } else {
-                Text("No sensor data")
-                    .font(.system(size: 13))
-                    .foregroundStyle(.secondary)
+
+                Spacer()
+
+                thermalBadge
             }
-
-            Spacer()
-
-            thermalBadge
         }
-        .padding(.horizontal, 14)
-        .padding(.top, 4)
-        .padding(.bottom, 12)
     }
 
     private var thermalBadge: some View {
-        HStack(spacing: 5) {
+        let color = pressureColor(vm.thermalState)
+        return HStack(spacing: 5) {
             Image(systemName: pressureIcon(vm.thermalState))
-                .font(.system(size: 12, weight: .semibold))
-                .symbolRenderingMode(.multicolor)
+                .font(.system(size: 11, weight: .semibold))
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(color)
             Text(pressureLabel(vm.thermalState))
-                .font(.system(size: 12, weight: .semibold, design: .rounded))
-                .foregroundStyle(pressureColor(vm.thermalState))
+                .font(.system(size: 11, weight: .semibold, design: .rounded))
+                .foregroundStyle(color)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 5)
-        .background(pressureColor(vm.thermalState).opacity(0.14), in: Capsule())
+        .background(color.opacity(0.13), in: Capsule())
+        .overlay(Capsule().strokeBorder(color.opacity(0.25), lineWidth: 0.5))
     }
 
     // MARK: – Sensor groups
 
     private func sectionGroup(name: String, items: [TempReading]) -> some View {
-        VStack(spacing: 0) {
-            HStack {
-                // The group name doubles as the ForEach id, so it stays a
-                // String and gets looked up here.
-                Text(LocalizedStringKey(name))
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(.secondary)
-                    .textCase(.uppercase)
-                    .tracking(0.7)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(.secondary.opacity(0.10), in: Capsule())
-                Spacer()
-            }
-            .padding(.horizontal, 14)
-            .padding(.top, 8)
-            .padding(.bottom, 4)
+        VStack(alignment: .leading, spacing: 6) {
+            DeckSectionHeader(
+                LocalizedStringKey(name),
+                icon: groupIcon(name),
+                tint: .orange
+            )
+            .padding(.horizontal, 4)
 
-            ForEach(items) { reading in
-                TempRow(reading: reading)
-                if reading.id != items.last?.id {
-                    Divider()
-                        .padding(.horizontal, 14)
-                        .opacity(0.08)
+            DeckGroupedList(dividerInset: 10) {
+                ForEach(items) { reading in
+                    TempRow(reading: reading)
                 }
             }
         }
     }
 
+    private func groupIcon(_ name: String) -> String {
+        switch name {
+        case "CPU": return "cpu"
+        case "GPU": return "rectangle.3.group"
+        default:    return "thermometer.medium"
+        }
+    }
+
     private var noDataRow: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 15))
-                .foregroundStyle(.orange)
-                .symbolRenderingMode(.multicolor)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("SMC unavailable")
-                    .font(.system(size: 12, weight: .semibold))
-                Text(vm.smcError ?? String(localized: "No temperature keys found"))
-                    .font(.system(size: 10))
-                    .foregroundStyle(.tertiary)
+        DeckStatusBanner(
+            icon: "exclamationmark.triangle.fill",
+            tint: .orange,
+            title: Text("SMC unavailable"),
+            subtitle: Text(vm.smcError ?? String(localized: "No temperature keys found"))
+        )
+    }
+
+    private func logsPanel(_ text: String) -> some View {
+        DeckCard {
+            VStack(spacing: 0) {
+                Button {
+                    withAnimation(.spring(response: 0.28, dampingFraction: 0.85)) {
+                        showLogs.toggle()
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "terminal")
+                            .font(.system(size: 10, weight: .semibold))
+                        Text("SMC Logs")
+                            .font(.system(size: 11, weight: .medium))
+                        Spacer()
+                        Image(systemName: showLogs ? "chevron.up" : "chevron.down")
+                            .font(.system(size: 9, weight: .bold))
+                    }
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 8)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+
+                if showLogs {
+                    DeckHairline()
+                    ScrollView(.vertical, showsIndicators: true) {
+                        Text(text)
+                            .font(.system(size: 9, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                            .textSelection(.enabled)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(8)
+                    }
+                    .frame(maxHeight: 200)
+                }
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
     }
 
     // MARK: – Helpers
@@ -234,7 +213,7 @@ struct ThermalView: View {
     private func tempColor(_ temp: Double) -> Color {
         switch temp {
         case ..<55: return .green
-        case ..<75: return .yellow
+        case ..<75: return Color(red: 0.90, green: 0.65, blue: 0.06)
         case ..<90: return .orange
         default:    return .red
         }
@@ -253,7 +232,7 @@ struct ThermalView: View {
     private func pressureColor(_ state: ProcessInfo.ThermalState) -> Color {
         switch state {
         case .nominal:    return .green
-        case .fair:       return .yellow
+        case .fair:       return Color(red: 0.90, green: 0.65, blue: 0.06)
         case .serious:    return .orange
         case .critical:   return .red
         @unknown default: return .secondary
@@ -279,36 +258,23 @@ struct TempRow: View {
     var body: some View {
         HStack(spacing: 10) {
             Text(reading.label)
-                .font(.system(size: 11, design: .monospaced))
+                .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(.secondary)
-                .frame(minWidth: 72, alignment: .leading)
+                .frame(minWidth: 74, alignment: .leading)
                 .lineLimit(1)
 
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(.primary.opacity(0.06))
-                        .frame(height: 7)
-
-                    Capsule()
-                        .fill(
-                            LinearGradient(
-                                colors: [barColor(reading.value).opacity(0.6), barColor(reading.value)],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .frame(width: max(7, geo.size.width * fillFraction(reading.value)), height: 7)
-                }
-            }
-            .frame(height: 7)
+            DeckProgressBar(
+                fraction: fillFraction(reading.value),
+                tint: barColor(reading.value),
+                height: 6
+            )
 
             Text(String(format: "%.0f°C", reading.value))
                 .font(.system(size: 11, weight: .bold, design: .monospaced))
                 .foregroundStyle(barColor(reading.value))
-                .frame(width: 38, alignment: .trailing)
+                .frame(width: 36, alignment: .trailing)
         }
-        .padding(.horizontal, 14)
+        .padding(.horizontal, 10)
         .padding(.vertical, 7)
     }
 
@@ -319,7 +285,7 @@ struct TempRow: View {
     private func barColor(_ temp: Double) -> Color {
         switch temp {
         case ..<60:  return .green
-        case ..<80:  return .yellow
+        case ..<80:  return Color(red: 0.90, green: 0.65, blue: 0.06)
         case ..<95:  return .orange
         default:     return .red
         }

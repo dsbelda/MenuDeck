@@ -44,11 +44,7 @@ enum TileLayout: String, CaseIterable, Identifiable {
 
 // MARK: – Tiles
 
-// Icons are always drawn in the module's own colour, not just when selected:
-// with twenty tiles on the panel, colour is what the eye finds a module by.
-// Selection is carried by the background and the label weight instead.
-
-/// Icon over a label.
+/// Control Center–style card tile: tinted icon badge over a crisp label.
 struct ModuleGridTile: View {
     let module: any Module
     let isSelected: Bool
@@ -58,40 +54,49 @@ struct ModuleGridTile: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 4) {
+            VStack(spacing: 5) {
                 Image(systemName: module.sfSymbol)
-                    .font(.system(size: 16, weight: .medium))
+                    .font(.system(size: 15, weight: .semibold))
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(module.tintColor)
-                    .frame(height: 18)
+                    .frame(width: 28, height: 28)
+                    .background(
+                        module.tintColor.opacity(isSelected ? 0.22 : (isHovered ? 0.18 : 0.13)),
+                        in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    )
                     .contentTransition(.symbolEffect(.replace))
 
                 Text(module.name)
-                    .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(isSelected ? .primary : .secondary)
+                    .font(.system(size: 9.5, weight: isSelected ? .semibold : .medium))
+                    .foregroundStyle(isSelected || isHovered ? .primary : .secondary)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.8)
+                    .minimumScaleFactor(0.82)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 8)
-            .background(selectionBackground(
-                module: module,
+            .padding(.horizontal, 3)
+            .background(TileSurface(
+                tint: module.tintColor,
                 isSelected: isSelected,
-                isHovered: isHovered
+                isHovered: isHovered,
+                cornerRadius: 10,
+                hasRestingCard: true
             ))
-            .contentShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(DeckPressStyle(scale: 0.96))
         .onHover { isHovered = $0 }
         .animation(.easeOut(duration: 0.12), value: isSelected)
+        .animation(.easeOut(duration: 0.10), value: isHovered)
     }
 }
 
-/// Icon alone, in a square — or, with `showsName`, a pill with the name beside it.
+/// Icon alone in a tactile squircle — or, with `showsName`, an active pill with the name beside it.
 struct ModuleIconTile: View {
     let module: any Module
     let isSelected: Bool
     var showsName = false
+    var compact = false
     let action: () -> Void
 
     @State private var isHovered = false
@@ -100,36 +105,38 @@ struct ModuleIconTile: View {
         Button(action: action) {
             HStack(spacing: 5) {
                 Image(systemName: module.sfSymbol)
-                    .font(.system(size: 15, weight: .medium))
+                    .font(.system(size: compact ? 13.5 : 15, weight: .semibold))
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(module.tintColor)
                 if showsName {
                     Text(module.name)
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.primary)
                         .lineLimit(1)
                         .fixedSize()
                 }
             }
-                .padding(.horizontal, showsName ? 9 : 0)
-                .frame(maxWidth: showsName ? nil : .infinity)
-                .frame(height: 30)
-                .background(selectionBackground(
-                    module: module,
-                    isSelected: isSelected,
-                    isHovered: isHovered
-                ))
-                .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .padding(.horizontal, showsName ? 9 : 0)
+            .frame(maxWidth: showsName ? nil : .infinity)
+            .frame(height: compact ? 30 : 34)
+            .background(TileSurface(
+                tint: module.tintColor,
+                isSelected: isSelected,
+                isHovered: isHovered,
+                cornerRadius: 8,
+                hasRestingCard: !compact
+            ))
+            .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         }
-        .buttonStyle(.plain)
-        // Without labels the icon has to carry the whole name, so a tooltip is
-        // the only thing standing in for it.
+        .buttonStyle(DeckPressStyle(scale: 0.95))
         .help(Text(module.name))
         .onHover { isHovered = $0 }
         .animation(.easeOut(duration: 0.12), value: isSelected)
+        .animation(.easeOut(duration: 0.10), value: isHovered)
     }
 }
 
-/// Icon beside label, one per row.
+/// Icon badge beside label, one per row.
 struct ModuleListRow: View {
     let module: any Module
     let isSelected: Bool
@@ -140,53 +147,93 @@ struct ModuleListRow: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 9) {
-                Image(systemName: module.sfSymbol)
-                    .font(.system(size: 12, weight: .medium))
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(module.tintColor)
-                    .frame(width: 18)
+                DeckIconBadge(
+                    symbol: module.sfSymbol,
+                    tint: module.tintColor,
+                    size: 22,
+                    iconSize: 11,
+                    isActive: true,
+                    cornerRadius: 6
+                )
 
                 Text(module.name)
-                    .font(.system(size: 11, weight: isSelected ? .semibold : .regular))
-                    .foregroundStyle(isSelected ? .primary : .secondary)
+                    .font(.system(size: 11.5, weight: isSelected ? .semibold : .medium))
+                    .foregroundStyle(isSelected || isHovered ? .primary : .secondary)
                     .lineLimit(1)
 
                 Spacer(minLength: 4)
 
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 8, weight: .bold))
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 9, weight: .semibold))
                     .foregroundStyle(.tertiary)
-                    .rotationEffect(.degrees(isSelected ? 0 : -90))
+                    .rotationEffect(.degrees(isSelected ? 90 : 0))
             }
             .padding(.horizontal, 8)
-            .padding(.vertical, 6)
-            .background(selectionBackground(
-                module: module,
+            .padding(.vertical, 5)
+            .background(TileSurface(
+                tint: module.tintColor,
                 isSelected: isSelected,
-                isHovered: isHovered
+                isHovered: isHovered,
+                cornerRadius: 8,
+                hasRestingCard: false
             ))
-            .contentShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(DeckPressStyle(scale: 0.985))
         .onHover { isHovered = $0 }
         .animation(.easeOut(duration: 0.12), value: isSelected)
+        .animation(.easeOut(duration: 0.10), value: isHovered)
     }
 }
 
-// MARK: – Shared selection chrome
+// MARK: – Adaptive Tile Surface
 
-@MainActor
-@ViewBuilder
-private func selectionBackground(
-    module: any Module,
-    isSelected: Bool,
-    isHovered: Bool = false,
-    cornerRadius: CGFloat = 8
-) -> some View {
-    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-        .fill(
-            isSelected
-                ? module.tintColor.opacity(0.18)
-                : Color.primary.opacity(isHovered ? 0.05 : 0)
-        )
+private struct TileSurface: View {
+    @Environment(\.colorScheme) private var scheme
+
+    let tint: Color
+    let isSelected: Bool
+    let isHovered: Bool
+    let cornerRadius: CGFloat
+    let hasRestingCard: Bool
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        shape
+            .fill(fillColor)
+            .overlay(shape.strokeBorder(borderColor, lineWidth: 0.5))
+            .shadow(
+                color: (!isSelected && hasRestingCard && scheme == .light)
+                    ? Color.black.opacity(0.035)
+                    : .clear,
+                radius: 2,
+                y: 1
+            )
+    }
+
+    private var fillColor: Color {
+        if isSelected {
+            return tint.opacity(scheme == .dark ? 0.18 : 0.15)
+        }
+        if isHovered {
+            return scheme == .dark ? Color.white.opacity(0.10) : Color.white.opacity(0.92)
+        }
+        if hasRestingCard {
+            return scheme == .dark ? Color.white.opacity(0.048) : Color.white.opacity(0.68)
+        }
+        return .clear
+    }
+
+    private var borderColor: Color {
+        if isSelected {
+            return tint.opacity(scheme == .dark ? 0.36 : 0.30)
+        }
+        if isHovered {
+            return scheme == .dark ? Color.white.opacity(0.14) : Color.black.opacity(0.10)
+        }
+        if hasRestingCard {
+            return scheme == .dark ? Color.white.opacity(0.085) : Color.black.opacity(0.07)
+        }
+        return .clear
+    }
 }

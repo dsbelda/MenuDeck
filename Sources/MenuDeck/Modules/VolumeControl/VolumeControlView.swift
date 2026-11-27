@@ -5,71 +5,49 @@ struct VolumeControlView: View {
     @ObservedObject private var manager = CoreAudioManager.shared
 
     var body: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: 8) {
             if let err = manager.lastPermissionError {
                 permissionBanner(message: err)
             }
             if manager.apps.isEmpty {
-                emptyState
+                DeckEmptyState(
+                    symbol: "speaker.wave.3",
+                    tint: .blue,
+                    title: "No audio apps",
+                    subtitle: "Open an app and play something",
+                    minHeight: manager.lastPermissionError == nil
+                        ? DeckMetrics.moduleHeight - 24
+                        : 170
+                )
             } else {
-                VStack(spacing: 0) {
-                    ForEach($manager.apps) { $app in
-                        AppVolumeRow(app: $app, manager: manager)
-                        if app.id != manager.apps.last?.id {
-                            Divider()
-                                .padding(.leading, 66)
-                                .opacity(0.08)
-                        }
-                    }
+                ForEach($manager.apps) { $app in
+                    AppVolumeRow(app: $app, manager: manager)
                 }
             }
         }
+        .padding(DeckMetrics.horizontalPadding)
         .whileShown { manager.refresh() }
     }
 
     private func permissionBanner(message: String) -> some View {
-        HStack(spacing: 10) {
-            Image(systemName: "lock.shield.fill")
-                .font(.system(size: 18))
-                .foregroundStyle(.orange)
-                .symbolRenderingMode(.multicolor)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Audio Capture needed")
-                    .font(.system(size: 11, weight: .semibold))
-                Text("Settings → Privacy & Security → Audio Capture")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
+        DeckStatusBanner(
+            icon: "lock.shield.fill",
+            tint: .orange,
+            title: Text("Audio Capture needed"),
+            subtitle: Text("Settings → Privacy & Security → Audio Capture")
+        ) {
+            DeckActionButton(
+                variant: .tinted(.orange),
+                cornerRadius: 6,
+                horizontalPadding: 8,
+                verticalPadding: 4
+            ) {
+                manager.openPrivacySettings()
+            } label: {
+                Text("Open")
+                    .font(.system(size: 10, weight: .semibold))
             }
-
-            Spacer()
-
-            Button("Open") { manager.openPrivacySettings() }
-                .buttonStyle(.glassProminent)
-                .controlSize(.mini)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 11)
-        .background(.orange.opacity(0.10), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .padding(.horizontal, 10)
-        .padding(.top, 8)
-    }
-
-    private var emptyState: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "speaker.wave.3")
-                .font(.system(size: 30, weight: .light))
-                .foregroundStyle(.tertiary)
-                .symbolRenderingMode(.hierarchical)
-            Text("No audio apps")
-                .font(.system(size: 13, weight: .medium, design: .rounded))
-                .foregroundStyle(.secondary)
-            Text("Open an app and play something")
-                .font(.system(size: 11))
-                .foregroundStyle(.tertiary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 28)
     }
 }
 
@@ -80,29 +58,34 @@ struct AppVolumeRow: View {
     let manager: CoreAudioManager
 
     var body: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 13) {
-                appIcon
+        DeckCard(padding: 10) {
+            VStack(spacing: 8) {
+                HStack(spacing: 10) {
+                    appIcon
 
-                VStack(alignment: .leading, spacing: 7) {
-                    HStack(spacing: 8) {
-                        Text(app.name)
-                            .font(.system(size: 13, weight: .semibold))
-                            .lineLimit(1)
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(spacing: 6) {
+                            Text(app.name)
+                                .font(.system(size: 12, weight: .semibold))
+                                .lineLimit(1)
 
-                        Spacer()
+                            Spacer(minLength: 4)
 
-                        volumePill
-                        muteButton
+                            volumePill
+                            muteButton
+                        }
+
+                        volumeSlider
                     }
-                    volumeSlider
                 }
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
 
-            if let err = app.controlError {
-                errorRow(err)
+                if let err = app.controlError {
+                    DeckStatusBanner(
+                        icon: "exclamationmark.triangle.fill",
+                        tint: .orange,
+                        title: Text(err)
+                    )
+                }
             }
         }
     }
@@ -114,22 +97,22 @@ struct AppVolumeRow: View {
                     Image(nsImage: icon)
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 40, height: 40)
-                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        .frame(width: 34, height: 34)
+                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                 } else {
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(.quaternary)
-                        .frame(width: 40, height: 40)
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(Color.primary.opacity(0.08))
+                        .frame(width: 34, height: 34)
                     Image(systemName: "app.fill")
-                        .font(.system(size: 18))
+                        .font(.system(size: 15))
                         .foregroundStyle(.secondary)
                 }
             }
             .overlay(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .strokeBorder(
-                        app.isControlled ? Color.blue.opacity(0.55) : Color.white.opacity(0.08),
-                        lineWidth: app.isControlled ? 1.5 : 0.5
+                        app.isControlled ? Color.blue.opacity(0.55) : Color.primary.opacity(0.09),
+                        lineWidth: app.isControlled ? 1.25 : 0.5
                     )
             )
 
@@ -137,37 +120,36 @@ struct AppVolumeRow: View {
                 Circle()
                     .fill(.blue)
                     .frame(width: 8, height: 8)
-                    .overlay(Circle().strokeBorder(.black.opacity(0.25), lineWidth: 1))
-                    .offset(x: 3, y: 3)
+                    .overlay(Circle().strokeBorder(.background, lineWidth: 1.5))
+                    .offset(x: 2.5, y: 2.5)
             }
         }
     }
 
     private var volumePill: some View {
         Text(app.isMuted ? String(localized: "muted") : "\(Int(app.volume * 100))%")
-            .font(.system(size: 11, weight: .semibold).monospacedDigit())
+            .font(.system(size: 10, weight: .semibold, design: .rounded).monospacedDigit())
             .foregroundStyle(app.isMuted ? .red : .secondary)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 3)
+            .padding(.horizontal, 7)
+            .padding(.vertical, 2.5)
             .background(
-                (app.isMuted ? Color.red : Color.secondary).opacity(0.12),
+                (app.isMuted ? Color.red : Color.primary).opacity(app.isMuted ? 0.13 : 0.065),
                 in: Capsule()
             )
             .animation(.none, value: app.isMuted)
     }
 
     private var muteButton: some View {
-        Button {
+        DeckIconButton(
+            symbol: app.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill",
+            size: 22,
+            iconSize: 11,
+            tint: app.isMuted ? .red : .secondary,
+            hoverTint: app.isMuted ? .red : .primary,
+            restingFill: app.isMuted ? 0.10 : 0.05
+        ) {
             manager.toggleMute(for: app)
-        } label: {
-            Image(systemName: app.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(app.isMuted ? .red : .secondary)
-                .symbolRenderingMode(.hierarchical)
-                .frame(width: 24, height: 24)
-                .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
     }
 
     private var volumeSlider: some View {
@@ -178,23 +160,7 @@ struct AppVolumeRow: View {
             ),
             in: 0...1
         )
-        .tint(app.isMuted ? .red.opacity(0.4) : .blue)
+        .tint(app.isMuted ? .red.opacity(0.45) : .blue)
         .controlSize(.small)
     }
-
-    private func errorRow(_ message: String) -> some View {
-        HStack(spacing: 6) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 10))
-                .foregroundStyle(.orange)
-                .symbolRenderingMode(.multicolor)
-            Text(message)
-                .font(.system(size: 10))
-                .foregroundStyle(.secondary)
-                .lineLimit(2)
-        }
-        .padding(.horizontal, 14)
-        .padding(.bottom, 8)
-    }
-
 }

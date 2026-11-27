@@ -6,78 +6,61 @@ struct PortsView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            toolbar
-            Divider().opacity(0.08)
+            DeckModuleToolbar {
+                Text("\(mgr.listeners.count) listening")
+                    .font(.system(size: 10.5, weight: .semibold))
+                    .foregroundStyle(.secondary)
+            } trailing: {
+                DeckIconButton(
+                    symbol: "arrow.clockwise",
+                    size: 22,
+                    iconSize: 10,
+                    weight: .semibold,
+                    action: { mgr.refresh() }
+                )
+                .disabled(mgr.isLoading)
+                .opacity(mgr.isLoading ? 0.45 : 1)
+            }
 
             if mgr.listeners.isEmpty {
-                emptyState
+                DeckEmptyState(
+                    symbol: "network.badge.shield.half.filled",
+                    tint: .indigo,
+                    title: "Nothing is listening",
+                    minHeight: 220
+                )
             } else {
-                ForEach(mgr.listeners) { listener in
-                    row(listener)
-                    if listener.id != mgr.listeners.last?.id {
-                        Divider().padding(.leading, 12).opacity(0.06)
+                ScrollView(.vertical) {
+                    LazyVStack(spacing: 2) {
+                        ForEach(mgr.listeners) { listener in
+                            PortRow(
+                                listener: listener,
+                                isPendingKill: pendingKill == listener.id,
+                                onRequestKill: { pendingKill = listener.id },
+                                onCancel: { pendingKill = nil },
+                                onConfirm: {
+                                    pendingKill = nil
+                                    mgr.quit(listener)
+                                }
+                            )
+                        }
                     }
+                    .padding(.vertical, 6)
                 }
+                .scrollBounceBehavior(.basedOnSize)
             }
 
             if let error = mgr.lastError {
-                Text(error)
-                    .font(.system(size: 9))
-                    .foregroundStyle(.orange)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 12)
-                    .padding(.bottom, 6)
+                DeckStatusBanner(
+                    icon: "exclamationmark.triangle.fill",
+                    tint: .orange,
+                    title: Text(error)
+                )
+                .padding(.horizontal, DeckMetrics.horizontalPadding)
+                .padding(.bottom, 8)
             }
         }
-        .padding(.bottom, 4)
         .whileShown(mgr.start, stop: mgr.stop)
-    }
-
-    private var toolbar: some View {
-        HStack {
-            Text("\(mgr.listeners.count) listening")
-                .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(.tertiary)
-            Spacer()
-            Button { mgr.refresh() } label: {
-                Image(systemName: "arrow.clockwise")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 20, height: 20)
-            }
-            .buttonStyle(.plain)
-            .disabled(mgr.isLoading)
-        }
-        .padding(.horizontal, 12)
-        .padding(.top, 8)
-        .padding(.bottom, 6)
-    }
-
-    private func row(_ listener: PortsManager.Listener) -> some View {
-        PortRow(
-            listener: listener,
-            isPendingKill: pendingKill == listener.id,
-            onRequestKill: { pendingKill = listener.id },
-            onCancel: { pendingKill = nil },
-            onConfirm: {
-                pendingKill = nil
-                mgr.quit(listener)
-            }
-        )
-    }
-
-    private var emptyState: some View {
-        VStack(spacing: 6) {
-            Image(systemName: "app.dashed")
-                .font(.system(size: 24, weight: .light))
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(.tertiary)
-            Text("Nothing is listening")
-                .font(.system(size: 11, weight: .medium, design: .rounded))
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 26)
     }
 }
 
@@ -90,72 +73,85 @@ private struct PortRow: View {
     let onCancel: () -> Void
     let onConfirm: () -> Void
 
-    @State private var isHovered = false
-
     var body: some View {
-        Group {
-            if isPendingKill {
-                confirmation
-            } else {
-                normal
-            }
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
-        .background(isHovered && !isPendingKill ? Color.primary.opacity(0.04) : .clear)
-        .onHover { isHovered = $0 }
-    }
+        if isPendingKill {
+            confirmation
+                .padding(.horizontal, 10)
+                .padding(.vertical, 2)
+        } else {
+            DeckHoverRow(horizontalPadding: 8, verticalPadding: 6, horizontalInset: 6) { isHovered in
+                HStack(spacing: 9) {
+                    Text(verbatim: ":\(listener.port)")
+                        .font(.system(size: 10.5, weight: .bold, design: .monospaced))
+                        .foregroundStyle(Color.indigo)
+                        .frame(width: 54)
+                        .padding(.vertical, 3.5)
+                        .background(
+                            Color.indigo.opacity(0.13),
+                            in: RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        )
 
-    private var normal: some View {
-        HStack(spacing: 9) {
-            Text("\(listener.port)")
-                .font(.system(size: 12, weight: .semibold, design: .monospaced))
-                .foregroundStyle(Color.indigo)
-                .frame(width: 46, alignment: .leading)
+                    VStack(alignment: .leading, spacing: 1.5) {
+                        Text(listener.command)
+                            .font(.system(size: 11.5, weight: .semibold))
+                            .lineLimit(1)
+                        Text(verbatim: "\(listener.address) · pid \(listener.pid)")
+                            .font(.system(size: 9.5, design: .monospaced))
+                            .foregroundStyle(.tertiary)
+                            .lineLimit(1)
+                    }
 
-            VStack(alignment: .leading, spacing: 1) {
-                Text(listener.command)
-                    .font(.system(size: 11, weight: .medium))
-                    .lineLimit(1)
-                Text("\(listener.address) · pid \(listener.pid)")
-                    .font(.system(size: 9, design: .monospaced))
-                    .foregroundStyle(.tertiary)
-                    .lineLimit(1)
-            }
+                    Spacer(minLength: 4)
 
-            Spacer(minLength: 4)
-
-            if isHovered && listener.isOwnedByUser {
-                Button(action: onRequestKill) {
-                    Image(systemName: "stop.circle")
-                        .font(.system(size: 12))
-                        .foregroundStyle(.secondary)
-                        .frame(width: 20, height: 20)
-                        .contentShape(Rectangle())
+                    if isHovered && listener.isOwnedByUser {
+                        DeckIconButton(
+                            symbol: "stop.circle.fill",
+                            size: 22,
+                            iconSize: 12,
+                            hoverTint: .red,
+                            action: onRequestKill
+                        )
+                        .help("Stop this process")
+                    }
                 }
-                .buttonStyle(.plain)
-                .help("Stop this process")
             }
         }
     }
 
     private var confirmation: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 6) {
             Text("Stop \(listener.command)?")
-                .font(.system(size: 11, weight: .medium))
+                .font(.system(size: 11, weight: .semibold))
                 .lineLimit(1)
 
             Spacer(minLength: 4)
 
-            Button("Cancel", action: onCancel)
-                .buttonStyle(.plain)
-                .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(.secondary)
+            DeckActionButton(
+                variant: .neutral,
+                cornerRadius: 6,
+                horizontalPadding: 8,
+                verticalPadding: 4,
+                action: onCancel
+            ) {
+                Text("Cancel").font(.system(size: 10, weight: .medium))
+            }
 
-            Button("Stop", action: onConfirm)
-                .buttonStyle(.plain)
-                .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(.red)
+            DeckActionButton(
+                variant: .solid(.red),
+                cornerRadius: 6,
+                horizontalPadding: 8,
+                verticalPadding: 4,
+                action: onConfirm
+            ) {
+                Text("Stop").font(.system(size: 10, weight: .semibold))
+            }
         }
+        .padding(.horizontal, 9)
+        .padding(.vertical, 7)
+        .background(Color.red.opacity(0.08), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .strokeBorder(Color.red.opacity(0.20), lineWidth: 0.5)
+        )
     }
 }

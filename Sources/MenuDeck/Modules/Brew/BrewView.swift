@@ -12,9 +12,14 @@ struct BrewView: View {
     var body: some View {
         Group {
             switch mgr.availability {
-            case .checking:  ProgressView().controlSize(.small).padding(.vertical, 30)
-            case .missing:   missingState
-            case .found:     content
+            case .checking:
+                ProgressView()
+                    .controlSize(.small)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            case .missing:
+                missingState
+            case .found:
+                content
             }
         }
         .onAppear { mgr.load() }
@@ -23,58 +28,41 @@ struct BrewView: View {
     // MARK: – Not installed
 
     private var missingState: some View {
-        VStack(spacing: 9) {
-            Image(systemName: "mug")
-                .font(.system(size: 26, weight: .light))
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(.tertiary)
-
-            Text("Homebrew not found")
-                .font(.system(size: 12, weight: .medium, design: .rounded))
-                .foregroundStyle(.secondary)
-
-            Text("This module needs Homebrew installed. Looked in /opt/homebrew and /usr/local.")
-                .font(.system(size: 10))
-                .foregroundStyle(.tertiary)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.horizontal, 20)
-
+        DeckEmptyState(
+            symbol: "mug",
+            tint: .orange,
+            title: "Homebrew not found",
+            subtitle: "This module needs Homebrew installed. Looked in /opt/homebrew and /usr/local.",
+            minHeight: DeckMetrics.moduleHeight - 20
+        ) {
             HStack(spacing: 6) {
-                Button {
+                DeckActionButton(
+                    variant: .tinted(.orange),
+                    cornerRadius: 16,
+                    horizontalPadding: 10,
+                    verticalPadding: 5
+                ) {
                     NSWorkspace.shared.open(URL(string: "https://brew.sh")!)
                 } label: {
                     Text("Open brew.sh")
                         .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(Color.orange)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(Color.orange.opacity(0.12), in: Capsule())
                 }
-                .buttonStyle(.plain)
 
-                // The install command is a curl piped into bash. Handing it over
-                // for the user to read and run in their own terminal is the only
-                // honest way to offer it — a menu bar app must not run that
-                // silently on their behalf.
-                Button {
+                DeckActionButton(
+                    variant: .neutral,
+                    cornerRadius: 16,
+                    horizontalPadding: 10,
+                    verticalPadding: 5
+                ) {
                     NSPasteboard.general.clearContents()
                     NSPasteboard.general.setString(Self.installCommand, forType: .string)
                     didCopyInstall = true
                 } label: {
                     Text(didCopyInstall ? "Copied" : "Copy install command")
                         .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(.primary.opacity(0.06), in: Capsule())
                 }
-                .buttonStyle(.plain)
             }
-            .padding(.top, 2)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 18)
     }
 
     private static let installCommand =
@@ -89,35 +77,34 @@ struct BrewView: View {
         } else {
             VStack(spacing: 0) {
                 toolbar
-                Divider().opacity(0.08)
+                DeckHairline()
                 packageList
             }
         }
     }
 
     private var toolbar: some View {
-        HStack(spacing: 6) {
-            Picker("", selection: $tab) {
-                Text("\(mgr.outdated.count) outdated").tag(Tab.outdated)
-                Text("\(mgr.requested.count) installed").tag(Tab.installed)
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .controlSize(.small)
+        HStack(spacing: 7) {
+            DeckSegmentedPicker(
+                selection: $tab,
+                segments: [
+                    .init(id: .outdated, title: String(localized: "\(mgr.outdated.count) outdated")),
+                    .init(id: .installed, title: String(localized: "\(mgr.requested.count) installed")),
+                ]
+            )
 
-            Button {
-                mgr.load(force: true)
-            } label: {
-                Image(systemName: "arrow.clockwise")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 20, height: 20)
-            }
-            .buttonStyle(.plain)
+            DeckIconButton(
+                symbol: "arrow.clockwise",
+                size: 22,
+                iconSize: 10,
+                weight: .semibold,
+                action: { mgr.load(force: true) }
+            )
             .disabled(mgr.isLoading)
+            .opacity(mgr.isLoading ? 0.45 : 1)
             .help("Reload the installed list")
         }
-        .padding(.horizontal, 12)
+        .padding(.horizontal, DeckMetrics.horizontalPadding)
         .padding(.vertical, 8)
     }
 
@@ -126,67 +113,77 @@ struct BrewView: View {
         let items = tab == .outdated ? mgr.outdated : mgr.requested
 
         if mgr.isLoading && mgr.packages.isEmpty {
-            ProgressView().controlSize(.small)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 30)
+            ProgressView()
+                .controlSize(.small)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if items.isEmpty {
-            Text(tab == .outdated ? "Everything is up to date" : "Nothing installed")
-                .font(.system(size: 11))
-                .foregroundStyle(.tertiary)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 30)
+            DeckEmptyState(
+                symbol: tab == .outdated ? "checkmark.seal" : "mug",
+                tint: tab == .outdated ? .green : .orange,
+                title: tab == .outdated ? "Everything is up to date" : "Nothing installed",
+                minHeight: 200
+            )
         } else {
             VStack(spacing: 0) {
                 if tab == .outdated {
                     upgradeAllRow
-                    Divider().opacity(0.07)
+                    DeckHairline()
                 }
-                ForEach(items) { package in
-                    PackageRow(
-                        package: package,
-                        isPendingRemoval: pendingRemoval == package.id,
-                        onUpgrade: { mgr.upgrade(package) },
-                        onRequestRemoval: { pendingRemoval = package.id },
-                        onCancelRemoval: { pendingRemoval = nil },
-                        onConfirmRemoval: {
-                            pendingRemoval = nil
-                            mgr.uninstall(package)
+
+                ScrollView(.vertical) {
+                    LazyVStack(spacing: 2) {
+                        ForEach(items) { package in
+                            PackageRow(
+                                package: package,
+                                isPendingRemoval: pendingRemoval == package.id,
+                                onUpgrade: { mgr.upgrade(package) },
+                                onRequestRemoval: { pendingRemoval = package.id },
+                                onCancelRemoval: { pendingRemoval = nil },
+                                onConfirmRemoval: {
+                                    pendingRemoval = nil
+                                    mgr.uninstall(package)
+                                }
+                            )
                         }
-                    )
-                    if package.id != items.last?.id {
-                        Divider().padding(.leading, 12).opacity(0.06)
                     }
+                    .padding(.vertical, 6)
                 }
+                .scrollBounceBehavior(.basedOnSize)
             }
-            .padding(.bottom, 6)
         }
     }
 
     private var upgradeAllRow: some View {
         HStack(spacing: 8) {
-            Button {
+            DeckActionButton(
+                variant: .tinted(.orange),
+                cornerRadius: 7,
+                horizontalPadding: 9,
+                verticalPadding: 4
+            ) {
                 mgr.upgradeAll()
             } label: {
                 Label("Upgrade all", systemImage: "arrow.up.circle.fill")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(Color.orange)
+                    .font(.system(size: 10.5, weight: .semibold))
             }
-            .buttonStyle(.plain)
 
             Spacer()
 
-            Button {
+            DeckActionButton(
+                variant: .neutral,
+                cornerRadius: 7,
+                horizontalPadding: 8,
+                verticalPadding: 4
+            ) {
                 mgr.updateIndex()
             } label: {
                 Text("Update index")
                     .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(.secondary)
             }
-            .buttonStyle(.plain)
             .help("Runs brew update to refresh the package index")
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(.horizontal, DeckMetrics.horizontalPadding)
+        .padding(.vertical, 7)
     }
 
     // MARK: – Running job
@@ -196,80 +193,85 @@ struct BrewView: View {
             HStack(spacing: 8) {
                 if job.isFinished {
                     Image(systemName: job.succeeded ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
-                        .font(.system(size: 12))
+                        .font(.system(size: 13))
                         .foregroundStyle(job.succeeded ? Color.green : Color.orange)
                 } else {
                     ProgressView().controlSize(.small).scaleEffect(0.7)
                 }
 
                 Text(job.title)
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.system(size: 11.5, weight: .semibold))
                     .lineLimit(1)
 
                 Spacer()
 
                 if job.isFinished {
-                    Button { mgr.dismissJob() } label: {
+                    DeckActionButton(
+                        variant: .tinted(.orange),
+                        cornerRadius: 7,
+                        horizontalPadding: 9,
+                        verticalPadding: 4
+                    ) {
+                        mgr.dismissJob()
+                    } label: {
                         Text("Done")
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundStyle(.orange)
+                            .font(.system(size: 10.5, weight: .semibold))
                     }
-                    .buttonStyle(.plain)
                 }
             }
-            .padding(.horizontal, 12)
+            .padding(.horizontal, DeckMetrics.horizontalPadding)
             .padding(.vertical, 9)
 
-            Divider().opacity(0.08)
+            DeckHairline()
 
             ScrollViewReader { proxy in
                 ScrollView(.vertical) {
                     Text(job.output.isEmpty ? "…" : job.output)
-                        .font(.system(size: 9, design: .monospaced))
+                        .font(.system(size: 9.5, design: .monospaced))
                         .foregroundStyle(.secondary)
                         .textSelection(.enabled)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
+                        .padding(10)
                         .id("output")
                 }
-                .frame(height: 118)
+                .background(
+                    Color.primary.opacity(0.04),
+                    in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .strokeBorder(Color.primary.opacity(0.07), lineWidth: 0.5)
+                )
+                .padding(DeckMetrics.horizontalPadding)
                 .onChange(of: job.output) { _, _ in
                     proxy.scrollTo("output", anchor: .bottom)
                 }
             }
 
             if job.isFinished && !job.succeeded {
-                Divider().opacity(0.08)
                 failureFooter(job)
+                    .padding(.horizontal, DeckMetrics.horizontalPadding)
+                    .padding(.bottom, 10)
             }
         }
     }
 
-    /// Casks with a pkg installer need an admin password, which a popover has no
-    /// safe way to collect — so a failure hands the command over to Terminal
-    /// rather than trying to prompt.
     private func failureFooter(_ job: BrewManager.Job) -> some View {
-        HStack(spacing: 8) {
-            Text("Some packages need admin rights")
-                .font(.system(size: 9))
-                .foregroundStyle(.tertiary)
-                .lineLimit(1)
-
-            Spacer()
-
+        DeckStatusBanner(
+            icon: "lock.fill",
+            tint: .orange,
+            title: Text("Some packages need admin rights")
+        ) {
             Button {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(job.command, forType: .string)
             } label: {
                 Label("Copy command", systemImage: "doc.on.doc")
-                    .font(.system(size: 10, weight: .medium))
+                    .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(.orange)
             }
             .buttonStyle(.plain)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
     }
 }
 
@@ -283,59 +285,68 @@ private struct PackageRow: View {
     let onCancelRemoval: () -> Void
     let onConfirmRemoval: () -> Void
 
-    @State private var isHovered = false
-
     var body: some View {
-        Group {
-            if isPendingRemoval {
-                removalConfirmation
-            } else {
-                normalRow
-            }
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 7)
-        .background(isHovered && !isPendingRemoval ? Color.primary.opacity(0.04) : .clear)
-        .onHover { isHovered = $0 }
-    }
+        if isPendingRemoval {
+            removalConfirmation
+                .padding(.horizontal, 10)
+                .padding(.vertical, 2)
+        } else {
+            DeckHoverRow(horizontalPadding: 9, verticalPadding: 6, horizontalInset: 6) { isHovered in
+                HStack(spacing: 8) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: 5) {
+                            Text(package.name)
+                                .font(.system(size: 11.5, weight: .semibold))
+                                .lineLimit(1)
+                            if package.isCask {
+                                Text("cask")
+                                    .font(.system(size: 8.5, weight: .semibold))
+                                    .foregroundStyle(.secondary)
+                                    .padding(.horizontal, 4.5)
+                                    .padding(.vertical, 1)
+                                    .background(Color.primary.opacity(0.08), in: Capsule())
+                            }
+                            if package.isPinned {
+                                Image(systemName: "pin.fill")
+                                    .font(.system(size: 7.5))
+                                    .foregroundStyle(.tertiary)
+                            }
+                        }
 
-    private var normalRow: some View {
-        HStack(spacing: 8) {
-            VStack(alignment: .leading, spacing: 1) {
-                HStack(spacing: 4) {
-                    Text(package.name)
-                        .font(.system(size: 11, weight: .medium))
-                        .lineLimit(1)
-                    if package.isCask {
-                        Text("cask")
-                            .font(.system(size: 8, weight: .semibold))
-                            .foregroundStyle(.tertiary)
-                            .padding(.horizontal, 3)
-                            .padding(.vertical, 1)
-                            .background(.primary.opacity(0.07), in: RoundedRectangle(cornerRadius: 3))
+                        Text(versionLine)
+                            .font(.system(size: 9.5, design: .monospaced))
+                            .foregroundStyle(package.isOutdated
+                                ? AnyShapeStyle(Color.orange)
+                                : AnyShapeStyle(.tertiary))
+                            .lineLimit(1)
                     }
-                    if package.isPinned {
-                        Image(systemName: "pin.fill")
-                            .font(.system(size: 7))
-                            .foregroundStyle(.tertiary)
+
+                    Spacer(minLength: 4)
+
+                    if isHovered {
+                        HStack(spacing: 4) {
+                            if package.isOutdated && !package.isPinned {
+                                DeckIconButton(
+                                    symbol: "arrow.up.circle.fill",
+                                    size: 22,
+                                    iconSize: 12,
+                                    tint: .orange,
+                                    hoverTint: .orange,
+                                    action: onUpgrade
+                                )
+                                .help("Upgrade")
+                            }
+                            DeckIconButton(
+                                symbol: "trash",
+                                size: 22,
+                                iconSize: 10.5,
+                                hoverTint: .red,
+                                action: onRequestRemoval
+                            )
+                            .help("Uninstall")
+                        }
                     }
                 }
-
-                Text(versionLine)
-                    .font(.system(size: 9, design: .monospaced))
-                    .foregroundStyle(package.isOutdated
-                        ? AnyShapeStyle(Color.orange)
-                        : AnyShapeStyle(.tertiary))
-                    .lineLimit(1)
-            }
-
-            Spacer(minLength: 4)
-
-            if isHovered {
-                if package.isOutdated && !package.isPinned {
-                    iconButton("arrow.up.circle", tint: .orange, help: "Upgrade", action: onUpgrade)
-                }
-                iconButton("trash", tint: .secondary, help: "Uninstall", action: onRequestRemoval)
             }
         }
     }
@@ -347,50 +358,48 @@ private struct PackageRow: View {
     }
 
     private var removalConfirmation: some View {
-        VStack(alignment: .leading, spacing: 5) {
+        VStack(alignment: .leading, spacing: 6) {
             Text("Uninstall \(package.name)?")
                 .font(.system(size: 11, weight: .semibold))
 
             if !package.dependents.isEmpty {
-                // brew will refuse the uninstall in this case; saying so up
-                // front beats letting the command fail with a wall of text.
                 Label(
                     "\(package.dependents.count) installed packages depend on it",
                     systemImage: "exclamationmark.triangle.fill"
                 )
-                .font(.system(size: 9))
+                .font(.system(size: 9.5))
                 .foregroundStyle(.orange)
                 .lineLimit(1)
             }
 
             HStack(spacing: 6) {
-                Button("Cancel", action: onCancelRemoval)
-                    .buttonStyle(.plain)
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(.secondary)
+                DeckActionButton(
+                    variant: .neutral,
+                    cornerRadius: 6,
+                    horizontalPadding: 9,
+                    verticalPadding: 4,
+                    action: onCancelRemoval
+                ) {
+                    Text("Cancel").font(.system(size: 10, weight: .medium))
+                }
 
-                Button("Uninstall", action: onConfirmRemoval)
-                    .buttonStyle(.plain)
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(.red)
+                DeckActionButton(
+                    variant: .solid(.red),
+                    cornerRadius: 6,
+                    horizontalPadding: 9,
+                    verticalPadding: 4,
+                    action: onConfirmRemoval
+                ) {
+                    Text("Uninstall").font(.system(size: 10, weight: .semibold))
+                }
             }
         }
-    }
-
-    private func iconButton(
-        _ symbol: String,
-        tint: Color,
-        help: LocalizedStringKey,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            Image(systemName: symbol)
-                .font(.system(size: 11))
-                .foregroundStyle(tint)
-                .frame(width: 20, height: 20)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .help(help)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(9)
+        .background(Color.red.opacity(0.08), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .strokeBorder(Color.red.opacity(0.20), lineWidth: 0.5)
+        )
     }
 }

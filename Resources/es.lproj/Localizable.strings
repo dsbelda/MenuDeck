@@ -39,6 +39,10 @@
 /* — Almacenamiento — */
 "Reading volumes…"  = "Leyendo volúmenes…";
 "%@ free of %@"     = "%@ libres de %@";
+"Disk images"       = "Imágenes de disco";
+"Eject"             = "Expulsar";
+"Eject all"         = "Expulsar todos";
+"Could not eject %@" = "No se pudo expulsar %@";
 
 /* — Color — */
 "Pick a colour"                   = "Seleccionar color";
@@ -245,3 +249,10 @@
 "Choose folder…"                    = "Elegir carpeta…";
 "No folders in %@"                  = "No hay carpetas en %@";
 "All modules"                       = "Todos los módulos";
+
+/* — Interfaz — */
+"Settings"      = "Ajustes";
+"Back"          = "Volver";
+"Save to"       = "Guardar en";
+"Delay"         = "Retardo";
+"Copy IP"       = "Copiar IP";

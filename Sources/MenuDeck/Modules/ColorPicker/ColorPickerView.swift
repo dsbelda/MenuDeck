@@ -3,120 +3,143 @@ import SwiftUI
 struct ColorPickerView: View {
     @ObservedObject private var mgr = ColorPickerManager.shared
     @State private var copiedId: UUID?
+    @State private var hoveredSwatch: ColorPickerManager.Swatch?
 
     var body: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: 10) {
             pickButton
-            Divider().opacity(0.08)
+
             if mgr.history.isEmpty {
-                emptyState
+                DeckEmptyState(
+                    symbol: "eyedropper",
+                    tint: .purple,
+                    title: "No colours yet",
+                    subtitle: "Picked colours are copied as HEX",
+                    minHeight: 175
+                )
             } else {
-                header
-                swatchGrid
+                historyCard
             }
         }
+        .padding(DeckMetrics.horizontalPadding)
     }
 
     // MARK: – Pick
 
     private var pickButton: some View {
-        Button {
+        DeckActionButton(
+            variant: .tinted(.purple),
+            cornerRadius: 11,
+            verticalPadding: 11,
+            fullWidth: true
+        ) {
             mgr.pick()
-            // The loupe is a system overlay; leaving the popover up behind it
-            // just steals the first click when the user comes back.
             NotificationCenter.default.post(name: .menuDeckClosePopover, object: nil)
         } label: {
             HStack(spacing: 8) {
                 Image(systemName: "eyedropper.halffull")
-                    .font(.system(size: 14, weight: .medium))
+                    .font(.system(size: 14, weight: .semibold))
                     .symbolRenderingMode(.hierarchical)
                 Text("Pick a colour")
                     .font(.system(size: 12, weight: .semibold))
             }
-            .foregroundStyle(Color.purple)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
-            .background(Color.purple.opacity(0.10), in: RoundedRectangle(cornerRadius: 11, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 11, style: .continuous)
-                    .strokeBorder(Color.purple.opacity(0.20), lineWidth: 0.5)
-            )
         }
-        .buttonStyle(.plain)
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
     }
 
     // MARK: – History
 
-    private var header: some View {
-        HStack {
-            Text("Recent")
-                .font(.system(size: 9, weight: .semibold))
-                .foregroundStyle(.tertiary)
-                .textCase(.uppercase)
-                .tracking(0.4)
-            Spacer()
-            Button {
-                mgr.clear()
-            } label: {
-                Text("Clear all")
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(.purple)
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(.horizontal, 14)
-        .padding(.top, 10)
-        .padding(.bottom, 6)
-    }
-
-    private var swatchGrid: some View {
-        let cols = Array(repeating: GridItem(.flexible(), spacing: 6), count: 6)
-        return LazyVGrid(columns: cols, spacing: 6) {
-            ForEach(mgr.history) { swatch in
-                Button {
-                    mgr.copy(swatch)
-                    copiedId = swatch.id
-                    Task {
-                        try? await Task.sleep(for: .seconds(1.2))
-                        if copiedId == swatch.id { copiedId = nil }
+    private var historyCard: some View {
+        DeckCard(padding: 11) {
+            VStack(spacing: 9) {
+                HStack(spacing: 6) {
+                    if let hovered = hoveredSwatch {
+                        HStack(spacing: 5) {
+                            Circle()
+                                .fill(hovered.color)
+                                .frame(width: 9, height: 9)
+                                .overlay(Circle().strokeBorder(.primary.opacity(0.2), lineWidth: 0.5))
+                            Text(hovered.hex)
+                                .font(.system(size: 10.5, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.primary)
+                        }
+                    } else {
+                        Text("Recent")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(.secondary)
+                            .textCase(.uppercase)
+                            .tracking(0.6)
                     }
-                } label: {
-                    RoundedRectangle(cornerRadius: 7, style: .continuous)
-                        .fill(swatch.color)
-                        .aspectRatio(1, contentMode: .fit)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 7, style: .continuous)
-                                .strokeBorder(.primary.opacity(0.12), lineWidth: 0.5)
-                        )
-                        .overlay {
-                            if copiedId == swatch.id {
-                                Image(systemName: "checkmark")
-                                    .font(.system(size: 10, weight: .bold))
-                                    .foregroundStyle(.white)
-                                    .shadow(radius: 1)
+
+                    Spacer()
+
+                    Button {
+                        withAnimation(.easeOut(duration: 0.15)) { mgr.clear() }
+                    } label: {
+                        Text("Clear all")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(.purple)
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                let cols = Array(repeating: GridItem(.flexible(), spacing: 7), count: 6)
+                LazyVGrid(columns: cols, spacing: 7) {
+                    ForEach(mgr.history) { swatch in
+                        SwatchCell(
+                            swatch: swatch,
+                            isCopied: copiedId == swatch.id,
+                            onHover: { hovering in
+                                hoveredSwatch = hovering ? swatch : (hoveredSwatch?.id == swatch.id ? nil : hoveredSwatch)
+                            }
+                        ) {
+                            mgr.copy(swatch)
+                            copiedId = swatch.id
+                            Task {
+                                try? await Task.sleep(for: .seconds(1.2))
+                                if copiedId == swatch.id { copiedId = nil }
                             }
                         }
+                    }
                 }
-                .buttonStyle(.plain)
-                .help(swatch.hex)
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.bottom, 12)
     }
+}
 
-    private var emptyState: some View {
-        VStack(spacing: 6) {
-            Text("No colours yet")
-                .font(.system(size: 12, weight: .medium, design: .rounded))
-                .foregroundStyle(.secondary)
-            Text("Picked colours are copied as HEX")
-                .font(.system(size: 10))
-                .foregroundStyle(.tertiary)
+private struct SwatchCell: View {
+    let swatch: ColorPickerManager.Swatch
+    let isCopied: Bool
+    let onHover: (Bool) -> Void
+    let action: () -> Void
+
+    @State private var isHovered = false
+
+    var body: some View {
+        Button(action: action) {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(swatch.color)
+                .aspectRatio(1, contentMode: .fit)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .strokeBorder(.primary.opacity(isHovered ? 0.35 : 0.14), lineWidth: isHovered ? 1 : 0.5)
+                )
+                .overlay {
+                    if isCopied {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 9.5, weight: .bold))
+                            .foregroundStyle(.white)
+                            .padding(4)
+                            .background(.black.opacity(0.45), in: Circle())
+                    }
+                }
+                .scaleEffect(isHovered ? 1.07 : 1)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 22)
+        .buttonStyle(DeckPressStyle(scale: 0.93))
+        .help(swatch.hex)
+        .onHover { hovering in
+            isHovered = hovering
+            onHover(hovering)
+        }
+        .animation(.easeOut(duration: 0.12), value: isHovered)
     }
 }

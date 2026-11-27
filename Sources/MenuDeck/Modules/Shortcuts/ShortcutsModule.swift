@@ -5,6 +5,7 @@ final class ShortcutsModule: Module {
     let name: LocalizedStringResource = "Shortcuts"
     let sfSymbol = "square.stack.3d.up.fill"
     let tintColor: Color = .purple
+    let providesOwnScrolling = true
 
     @MainActor func makeContent() -> AnyView { AnyView(ShortcutsView()) }
 

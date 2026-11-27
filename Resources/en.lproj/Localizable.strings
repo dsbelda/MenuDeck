@@ -42,6 +42,10 @@
 /* — Storage — */
 "Reading volumes…"  = "Reading volumes…";
 "%@ free of %@"     = "%@ free of %@";
+"Disk images"       = "Disk images";
+"Eject"             = "Eject";
+"Eject all"         = "Eject all";
+"Could not eject %@" = "Could not eject %@";
 
 /* — Colour — */
 "Pick a colour"                    = "Pick a colour";
@@ -248,3 +252,10 @@
 "Choose folder…"                    = "Choose folder…";
 "No folders in %@"                  = "No folders in %@";
 "All modules"                       = "All modules";
+
+/* — UI chrome — */
+"Settings"      = "Settings";
+"Back"          = "Back";
+"Save to"       = "Save to";
+"Delay"         = "Delay";
+"Copy IP"       = "Copy IP";

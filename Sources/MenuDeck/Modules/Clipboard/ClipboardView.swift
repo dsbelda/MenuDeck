@@ -6,85 +6,56 @@ struct ClipboardView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            toolbar
-            if mgr.history.isEmpty {
-                emptyState
-            } else {
-                itemList
-            }
-        }
-    }
-
-    // MARK: – Toolbar
-
-    private var toolbar: some View {
-        HStack {
-            // Pluralised via Localizable.stringsdict — splicing an "s" in
-            // only works for one language.
-            Text("\(mgr.history.count) items")
-                .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(.tertiary)
-            Spacer()
-            Button {
-                withAnimation(.spring(response: 0.3)) { mgr.clear() }
-            } label: {
-                Text("Clear all")
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(.pink)
-            }
-            .buttonStyle(.plain)
-            .opacity(mgr.history.isEmpty ? 0.3 : 1)
-            .disabled(mgr.history.isEmpty)
-        }
-        .padding(.horizontal, 14)
-        .padding(.top, 10)
-        .padding(.bottom, 6)
-    }
-
-    // MARK: – Item list
-
-    private var itemList: some View {
-        VStack(spacing: 0) {
-            ForEach(mgr.history) { item in
-                ClipboardRow(
-                    item: item,
-                    isCopied: copiedId == item.id,
-                    onCopy: {
-                        mgr.copy(item)
-                        withAnimation(.spring(response: 0.25)) { copiedId = item.id }
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                            withAnimation { if copiedId == item.id { copiedId = nil } }
-                        }
-                    },
-                    onDelete: {
-                        withAnimation(.spring(response: 0.3)) { mgr.delete(item) }
-                    }
-                )
-                if item.id != mgr.history.last?.id {
-                    Divider().padding(.leading, 14).opacity(0.07)
+            DeckModuleToolbar {
+                Text("\(mgr.history.count) items")
+                    .font(.system(size: 10.5, weight: .semibold))
+                    .foregroundStyle(.secondary)
+            } trailing: {
+                Button {
+                    withAnimation(.spring(response: 0.3)) { mgr.clear() }
+                } label: {
+                    Text("Clear all")
+                        .font(.system(size: 10.5, weight: .semibold))
+                        .foregroundStyle(.pink)
                 }
+                .buttonStyle(.plain)
+                .opacity(mgr.history.isEmpty ? 0.35 : 1)
+                .disabled(mgr.history.isEmpty)
+            }
+
+            if mgr.history.isEmpty {
+                DeckEmptyState(
+                    symbol: "doc.on.clipboard",
+                    tint: .pink,
+                    title: "No history yet",
+                    subtitle: "Copy something to see it here",
+                    minHeight: 220
+                )
+            } else {
+                ScrollView(.vertical) {
+                    LazyVStack(spacing: 2) {
+                        ForEach(mgr.history) { item in
+                            ClipboardRow(
+                                item: item,
+                                isCopied: copiedId == item.id,
+                                onCopy: {
+                                    mgr.copy(item)
+                                    withAnimation(.spring(response: 0.25)) { copiedId = item.id }
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                                        withAnimation { if copiedId == item.id { copiedId = nil } }
+                                    }
+                                },
+                                onDelete: {
+                                    withAnimation(.spring(response: 0.3)) { mgr.delete(item) }
+                                }
+                            )
+                        }
+                    }
+                    .padding(.vertical, 6)
+                }
+                .scrollBounceBehavior(.basedOnSize)
             }
         }
-        .padding(.bottom, 6)
-    }
-
-    // MARK: – Empty state
-
-    private var emptyState: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "doc.on.clipboard")
-                .font(.system(size: 28, weight: .light))
-                .foregroundStyle(.tertiary)
-                .symbolRenderingMode(.hierarchical)
-            Text("No history yet")
-                .font(.system(size: 12, weight: .medium, design: .rounded))
-                .foregroundStyle(.secondary)
-            Text("Copy something to see it here")
-                .font(.system(size: 10))
-                .foregroundStyle(.tertiary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 28)
     }
 }
 
@@ -96,10 +67,6 @@ private struct ClipboardRow: View {
     let onCopy: () -> Void
     let onDelete: () -> Void
 
-    @State private var isHovered = false
-
-    /// Allocating a formatter is expensive, and this is read from body — once
-    /// per row, per frame. Built once instead.
     @MainActor
     private static let timeFormatter: RelativeDateTimeFormatter = {
         let f = RelativeDateTimeFormatter()
@@ -112,51 +79,53 @@ private struct ClipboardRow: View {
     }
 
     var body: some View {
-        HStack(spacing: 0) {
-            // Content
-            VStack(alignment: .leading, spacing: 2) {
-                Text(item.text)
-                    .font(.system(size: 11))
-                    .lineLimit(2)
-                    .truncationMode(.tail)
-                    .foregroundStyle(.primary)
-                Text(relativeTime)
-                    .font(.system(size: 9))
-                    .foregroundStyle(.tertiary)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.vertical, 8)
-
-            // Action buttons (appear on hover)
-            if isHovered {
-                HStack(spacing: 4) {
-                    // Copy
-                    Button(action: onCopy) {
-                        Image(systemName: isCopied ? "checkmark.circle.fill" : "doc.on.doc")
-                            .font(.system(size: 12))
-                            .foregroundStyle(isCopied ? .green : .secondary)
-                            .frame(width: 26, height: 26)
-                    }
-                    .buttonStyle(.plain)
-                    .contentTransition(.symbolEffect(.replace))
-
-                    // Delete
-                    Button(action: onDelete) {
-                        Image(systemName: "trash")
-                            .font(.system(size: 11))
-                            .foregroundStyle(.secondary)
-                            .frame(width: 26, height: 26)
-                    }
-                    .buttonStyle(.plain)
+        DeckHoverRow(
+            horizontalPadding: 9,
+            verticalPadding: 7,
+            horizontalInset: 6,
+            isSelected: isCopied,
+            tint: .green
+        ) { isHovered in
+            HStack(spacing: 8) {
+                VStack(alignment: .leading, spacing: 2.5) {
+                    Text(item.text)
+                        .font(.system(size: 11.5))
+                        .lineLimit(2)
+                        .truncationMode(.tail)
+                        .foregroundStyle(.primary)
+                    Text(relativeTime)
+                        .font(.system(size: 9.5))
+                        .foregroundStyle(.tertiary)
                 }
-                .transition(.opacity.combined(with: .scale(scale: 0.8)))
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                if isCopied {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.green)
+                        .transition(.scale.combined(with: .opacity))
+                } else if isHovered {
+                    HStack(spacing: 4) {
+                        DeckIconButton(
+                            symbol: "doc.on.doc",
+                            size: 22,
+                            iconSize: 10.5,
+                            hoverTint: .pink,
+                            action: onCopy
+                        )
+
+                        DeckIconButton(
+                            symbol: "trash",
+                            size: 22,
+                            iconSize: 10.5,
+                            hoverTint: .red,
+                            action: onDelete
+                        )
+                    }
+                    .transition(.opacity.combined(with: .scale(scale: 0.85)))
+                }
             }
         }
-        .padding(.horizontal, 14)
-        .contentShape(Rectangle())
-        .onHover { isHovered = $0 }
         .onTapGesture(perform: onCopy)
-        .background(isHovered ? Color.primary.opacity(0.04) : .clear)
-        .animation(.easeInOut(duration: 0.12), value: isHovered)
     }
 }

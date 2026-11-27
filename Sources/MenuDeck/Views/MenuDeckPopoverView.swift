@@ -26,9 +26,7 @@ struct MenuDeckPopoverView: View {
         nonmutating set { state.screen = newValue }
     }
 
-    /// One source of truth for the popover width: the header, the tile grid
-    /// and the settings list must agree or the panels jitter when switching.
-    static let panelWidth: CGFloat = 284
+    static let panelWidth: CGFloat = DeckMetrics.panelWidth
 
     // MARK: – Enabled modules
 
@@ -67,7 +65,6 @@ struct MenuDeckPopoverView: View {
             }
         }
         .frame(width: Self.panelWidth)
-        .background(.regularMaterial)
         .onAppear {
             if expandedId == nil,
                !defaultModuleId.isEmpty,
@@ -80,55 +77,72 @@ struct MenuDeckPopoverView: View {
     // MARK: – Header
 
     private var header: some View {
-        HStack(spacing: 10) {
-            appIcon
+        HStack(spacing: 8) {
+            if screen == .settings {
+                DeckIconButton(
+                    symbol: "chevron.left",
+                    size: 24,
+                    iconSize: 11,
+                    weight: .semibold,
+                    action: { screen = .main }
+                )
+                .help(Text("Back"))
 
-            Text("MenuDeck")
-                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                Text("Settings")
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
 
-            Spacer()
+                Spacer()
+            } else {
+                appIcon
 
-            // Settings / back button — icon morphs between states
-            Button {
-                screen = screen == .main ? .settings : .main
-                if screen == .settings { login.refresh() }
-            } label: {
-                Image(systemName: screen == .settings ? "chevron.left" : "gearshape.fill")
-                    .font(.system(size: screen == .settings ? 11 : 12, weight: .medium))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 22, height: 22)
-                    .background(.primary.opacity(0.07), in: Circle())
-                    .contentTransition(.symbolEffect(.replace))
-            }
-            .buttonStyle(.plain)
+                Text("MenuDeck")
+                    .font(.system(size: 13.5, weight: .semibold, design: .rounded))
 
-            if screen == .main {
-                Button { NSApplication.shared.terminate(nil) } label: {
-                    Image(systemName: "power")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(.secondary)
-                        .frame(width: 22, height: 22)
-                        .background(.primary.opacity(0.06), in: Circle())
-                }
-                .buttonStyle(.plain)
-                .transition(.scale(scale: 0.5).combined(with: .opacity))
+                Spacer()
+
+                DeckIconButton(
+                    symbol: "gearshape.fill",
+                    size: 24,
+                    iconSize: 11.5,
+                    action: {
+                        screen = .settings
+                        login.refresh()
+                    }
+                )
+                .help(Text("Settings"))
+
+                DeckIconButton(
+                    symbol: "power",
+                    size: 24,
+                    iconSize: 10.5,
+                    weight: .semibold,
+                    hoverTint: .red,
+                    action: { NSApplication.shared.terminate(nil) }
+                )
+                .help(Text("Quit MenuDeck"))
             }
         }
-        .padding(.horizontal, 12)
+        .padding(.horizontal, DeckMetrics.horizontalPadding)
         .padding(.top, 10)
-        .padding(.bottom, 8)
-        .animation(.snappy(duration: 0.18, extraBounce: 0), value: screen)
+        .padding(.bottom, 9)
+        .animation(.snappy(duration: 0.16, extraBounce: 0), value: screen)
     }
 
     private var appIcon: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 7, style: .continuous)
+            RoundedRectangle(cornerRadius: 6.5, style: .continuous)
                 .fill(LinearGradient(
-                    colors: [Color(red: 0.62, green: 0.32, blue: 1.0),
-                             Color(red: 0.40, green: 0.18, blue: 0.88)],
+                    colors: [Color(red: 0.64, green: 0.34, blue: 1.0),
+                             Color(red: 0.42, green: 0.18, blue: 0.88)],
                     startPoint: .topLeading, endPoint: .bottomTrailing
                 ))
                 .frame(width: 22, height: 22)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6.5, style: .continuous)
+                        .strokeBorder(.white.opacity(0.22), lineWidth: 0.5)
+                )
+                .shadow(color: Color(red: 0.48, green: 0.22, blue: 0.92).opacity(0.28), radius: 3, y: 1)
+
             MenuDeckGlyphView(color: .white)
                 .frame(width: 11, height: 11)
         }
@@ -136,48 +150,31 @@ struct MenuDeckPopoverView: View {
 
     // MARK: – Main panel (tiles + expanded content)
 
-    /// Tall enough for the dense modules (CPU cores, thermal sensors) without
-    /// leaving too much empty glass under the short ones.
-    private static let moduleHeight: CGFloat = 260
+    private static let moduleHeight: CGFloat = DeckMetrics.moduleHeight
 
     /// Two states, never both: the full set of tiles to choose from, or one
-    /// module with the tiles folded into a strip above it. Twenty tiles in a
-    /// grid are taller than any module, so keeping the grid up while one was
-    /// open spent most of the panel on choices already made.
+    /// module with the tiles folded into a strip above it.
     private var mainPanel: some View {
         VStack(spacing: 0) {
-            Divider().opacity(0.08)
+            DeckHairline()
 
             if let id = expandedId,
                let mod = visibleModules.first(where: { $0.id == id }) {
                 tileStrip
-                Divider().opacity(0.08)
+                DeckHairline()
                 moduleContent(mod)
             } else {
                 tileGrid
             }
         }
-        // Deliberately unanimated. Expanding a module changes the panel's
-        // height, which the hosting controller pushes to the popover as a new
-        // preferredContentSize. Animating it made SwiftUI publish a *series* of
-        // intermediate heights, and the popover window chased each one a frame
-        // behind — that lag is the jump you see on the first expand. Resizing in
-        // a single layout pass keeps the window and its content in step.
+        // Deliberately unanimated so NSPopover resizes in a single layout pass.
         .frame(width: Self.panelWidth)
     }
 
-    /// A constant height, not a maximum. With `.preferredContentSize` the
-    /// popover tracks its content, so a per-module height made it resize on
-    /// every switch — and again whenever anything inside a module appeared (the
-    /// thermal log panel, the audio permission banner), which happens outside
-    /// any animation transaction and reads as a jump.
     @ViewBuilder
     private func moduleContent(_ mod: any Module) -> some View {
-        // makeContent() is type-erased, so every module lands in the same
-        // structural slot and SwiftUI reuses the previous module's identity when
-        // switching. onDisappear/onAppear then never fire, the new module's
-        // manager is never start()ed, and the panel renders empty. Keying on the
-        // module id forces a real teardown + setup per module.
+        // Keying on the module id forces real teardown + setup per module so
+        // whileShown() starts/stops each module cleanly.
         if mod.providesOwnScrolling {
             mod.makeContent()
                 .id(mod.id)
@@ -191,36 +188,22 @@ struct MenuDeckPopoverView: View {
         }
     }
 
-    // MARK: – Tile grid  (4 columns, N rows)
+    // MARK: – Tile grid
 
     @ViewBuilder
     private var tileGrid: some View {
         if visibleModules.isEmpty {
-            noModulesState
+            DeckEmptyState(
+                symbol: "square.grid.2x2",
+                title: "Every module is turned off",
+                subtitle: "Turn some back on in Settings",
+                minHeight: 160
+            )
         } else {
             moduleTiles
         }
     }
 
-    private var noModulesState: some View {
-        VStack(spacing: 6) {
-            Image(systemName: "square.grid.2x2")
-                .font(.system(size: 22, weight: .light))
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(.tertiary)
-            Text("Every module is turned off")
-                .font(.system(size: 11, weight: .medium, design: .rounded))
-                .foregroundStyle(.secondary)
-            Text("Turn some back on in Settings")
-                .font(.system(size: 10))
-                .foregroundStyle(.tertiary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 26)
-    }
-
-    /// No withAnimation anywhere in here: see the note on mainPanel. Each tile
-    /// animates its own tint, which is the part that reads as feedback.
     private func select(_ module: any Module) {
         expandedId = expandedId == module.id ? nil : module.id
     }
@@ -236,57 +219,62 @@ struct MenuDeckPopoverView: View {
     }
 
     private func gridTiles(columns: Int) -> some View {
-        let cols = Array(repeating: GridItem(.flexible(), spacing: 6), count: columns)
-        return LazyVGrid(columns: cols, spacing: 6) {
+        let cols = Array(repeating: GridItem(.flexible(), spacing: 7), count: columns)
+        return LazyVGrid(columns: cols, spacing: 7) {
             ForEach(visibleModules, id: \.id) { mod in
                 ModuleGridTile(module: mod, isSelected: expandedId == mod.id) {
                     select(mod)
                 }
             }
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 10)
+        .padding(DeckMetrics.horizontalPadding)
     }
 
     private func iconTiles(columns: Int) -> some View {
-        let cols = Array(repeating: GridItem(.flexible(), spacing: 4), count: columns)
-        return LazyVGrid(columns: cols, spacing: 4) {
+        let cols = Array(repeating: GridItem(.flexible(), spacing: 6), count: columns)
+        return LazyVGrid(columns: cols, spacing: 6) {
             ForEach(visibleModules, id: \.id) { mod in
                 ModuleIconTile(module: mod, isSelected: expandedId == mod.id) {
                     select(mod)
                 }
             }
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 8)
+        .padding(10)
     }
 
     private var listTiles: some View {
-        VStack(spacing: 1) {
-            ForEach(visibleModules, id: \.id) { mod in
-                ModuleListRow(module: mod, isSelected: expandedId == mod.id) {
-                    select(mod)
+        ScrollView(.vertical) {
+            VStack(spacing: 2) {
+                ForEach(visibleModules, id: \.id) { mod in
+                    ModuleListRow(module: mod, isSelected: expandedId == mod.id) {
+                        select(mod)
+                    }
                 }
             }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 8)
         }
-        .padding(.horizontal, 6)
-        .padding(.vertical, 6)
+        .frame(maxHeight: 380)
+        .scrollBounceBehavior(.basedOnSize)
     }
 
-    /// The one layout whose height never grows with the module count — and
-    /// what every layout folds into while a module is open.
+    /// Horizontal strip of module tiles — used by the Row layout and as the
+    /// folded switcher bar above any expanded module.
     private var rowTiles: some View {
         ScrollViewReader { proxy in
             ScrollView(.horizontal) {
-                HStack(spacing: 4) {
+                HStack(spacing: 5) {
                     ForEach(visibleModules, id: \.id) { mod in
                         let isSelected = expandedId == mod.id
-                        // The open module wears its name: with the grid folded
-                        // away, nothing else on the panel says what it is.
-                        ModuleIconTile(module: mod, isSelected: isSelected, showsName: isSelected) {
+                        ModuleIconTile(
+                            module: mod,
+                            isSelected: isSelected,
+                            showsName: isSelected,
+                            compact: true
+                        ) {
                             select(mod)
                         }
-                        .frame(width: isSelected ? nil : 34)
+                        .frame(width: isSelected ? nil : 32)
                     }
                 }
                 .padding(.horizontal, 8)
@@ -294,10 +282,6 @@ struct MenuDeckPopoverView: View {
             }
             .scrollIndicators(.never)
             .scrollBounceBehavior(.basedOnSize)
-            // A module opened by hot key, or from the far end of the grid,
-            // would otherwise be selected somewhere off the edge of the strip.
-            // Unwrapped on purpose: scrollTo matches ids by type as well as
-            // value, and an Optional<String> never equals the tiles' String.
             .onAppear { if let id = expandedId { proxy.scrollTo(id, anchor: .center) } }
             .onChange(of: expandedId) { _, id in
                 if let id { proxy.scrollTo(id, anchor: .center) }
@@ -305,23 +289,39 @@ struct MenuDeckPopoverView: View {
         }
     }
 
-    /// The strip, with a way back to the full set in front of it. The row
-    /// layout has no fuller view to go back to, so it gets the strip alone.
+    /// The strip, with a return-to-grid button pinned at the leading edge.
     private var tileStrip: some View {
         HStack(spacing: 0) {
             if tileLayout != .row {
-                Button { expandedId = nil } label: {
-                    Image(systemName: "square.grid.2x2")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(.secondary)
-                        .frame(width: 30, height: 30)
-                        .background(.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                }
-                .buttonStyle(.plain)
+                DeckIconButton(
+                    symbol: "square.grid.2x2",
+                    size: 30,
+                    iconSize: 12.5,
+                    isCircular: false,
+                    cornerRadius: 8,
+                    action: { expandedId = nil }
+                )
                 .help(Text("All modules"))
                 .padding(.leading, 8)
+                .padding(.trailing, 6)
+
+                Rectangle()
+                    .fill(Color.primary.opacity(0.09))
+                    .frame(width: 1, height: 18)
             }
             rowTiles
+                .mask(
+                    LinearGradient(
+                        stops: [
+                            .init(color: .black.opacity(0.25), location: 0),
+                            .init(color: .black, location: 0.03),
+                            .init(color: .black, location: 0.94),
+                            .init(color: .black.opacity(0.2), location: 1)
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
         }
     }
 
@@ -329,25 +329,24 @@ struct MenuDeckPopoverView: View {
 
     private var settingsPanel: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Divider().opacity(0.08)
+            DeckHairline()
 
             ScrollView(.vertical) {
                 VStack(alignment: .leading, spacing: 8) {
-                    sectionLabel("General")
+                    DeckSectionHeader("General")
+                        .padding(.horizontal, 6)
 
-                    SettingsGroup {
-                        SettingsRow(label: "Default module", icon: "star") {
+                    DeckGroupedList(dividerInset: 36) {
+                        SettingsRow(label: "Default module", icon: "star.fill", tint: .orange) {
                             Picker("", selection: $defaultModuleId) {
                                 Text("None").tag("")
-                                // Only modules that are actually on the grid: opening
-                                // onto a hidden module would show a panel with no tile.
                                 ForEach(visibleModules, id: \.id) { mod in
                                     Label(mod.name, systemImage: mod.sfSymbol).tag(mod.id)
                                 }
                             }
                         }
 
-                        SettingsRow(label: "Layout", icon: "square.grid.2x2") {
+                        SettingsRow(label: "Layout", icon: "square.grid.2x2.fill", tint: .blue) {
                             Picker("", selection: $tileLayoutRaw) {
                                 ForEach(TileLayout.allCases) { layout in
                                     Label(layout.label, systemImage: layout.sfSymbol)
@@ -356,7 +355,7 @@ struct MenuDeckPopoverView: View {
                             }
                         }
 
-                        SettingsRow(label: "Menu bar shows", icon: "menubar.rectangle") {
+                        SettingsRow(label: "Menu bar shows", icon: "menubar.rectangle", tint: .purple) {
                             Picker("", selection: $menuBarMode) {
                                 Label("App icon",     systemImage: "app").tag("icon")
                                 Label("Temperature",  systemImage: "thermometer.medium").tag("temp")
@@ -370,10 +369,11 @@ struct MenuDeckPopoverView: View {
                     .labelsHidden()
                     .controlSize(.small)
 
-                    sectionLabel("Modules")
-                        .padding(.top, 10)
+                    DeckSectionHeader("Modules")
+                        .padding(.horizontal, 6)
+                        .padding(.top, 8)
 
-                    SettingsGroup {
+                    DeckGroupedList(dividerInset: 38) {
                         ForEach(ModuleRegistry.all, id: \.id) { mod in
                             ModuleToggleRow(
                                 module: mod,
@@ -385,11 +385,12 @@ struct MenuDeckPopoverView: View {
                         }
                     }
 
-                    sectionLabel("Application")
-                        .padding(.top, 10)
+                    DeckSectionHeader("Application")
+                        .padding(.horizontal, 6)
+                        .padding(.top, 8)
 
-                    SettingsGroup {
-                        SettingsRow(label: "Open at login", icon: "power") {
+                    DeckGroupedList(dividerInset: 36) {
+                        SettingsRow(label: "Open at login", icon: "power", tint: .green) {
                             Toggle("", isOn: Binding(
                                 get: { login.isEnabled },
                                 set: { login.setEnabled($0) }
@@ -399,32 +400,31 @@ struct MenuDeckPopoverView: View {
                             .controlSize(.mini)
                         }
 
-                        SettingsRow(label: "Version", icon: "info.circle") {
+                        SettingsRow(label: "Version", icon: "info.circle.fill", tint: .secondary) {
                             Text(Self.appVersion)
-                                .font(.system(size: 11, design: .monospaced))
-                                .foregroundStyle(.tertiary)
+                                .font(.system(size: 11, weight: .medium, design: .monospaced))
+                                .foregroundStyle(.secondary)
                         }
                     }
 
                     loginNotes
 
-                    Button(role: .destructive) {
+                    DeckActionButton(
+                        variant: .tinted(.red),
+                        cornerRadius: 9,
+                        verticalPadding: 8,
+                        fullWidth: true
+                    ) {
                         NSApplication.shared.terminate(nil)
                     } label: {
                         Label("Quit MenuDeck", systemImage: "power")
-                            .font(.system(size: 12, weight: .medium))
-                            .frame(maxWidth: .infinity)
+                            .font(.system(size: 11.5, weight: .semibold))
                     }
-                    .buttonStyle(.bordered)
-                    .controlSize(.regular)
-                    .padding(.top, 8)
+                    .padding(.top, 6)
                 }
-                .padding(12)
+                .padding(DeckMetrics.horizontalPadding)
             }
-            // The module list makes this panel taller than the screen would
-            // like. A fixed height keeps the popover a stable size instead of
-            // growing to fit twenty toggles.
-            .frame(height: 380)
+            .frame(height: DeckMetrics.settingsHeight)
             .scrollBounceBehavior(.basedOnSize)
         }
         .frame(width: Self.panelWidth)
@@ -435,12 +435,10 @@ struct MenuDeckPopoverView: View {
     @ViewBuilder
     private var loginNotes: some View {
         if login.needsApproval {
-            // The registration went through but macOS is holding it, so
-            // nothing would actually start at login until it is approved.
-            loginNote(
+            DeckStatusBanner(
                 icon: "exclamationmark.triangle.fill",
                 tint: .orange,
-                text: Text("Waiting for approval in System Settings")
+                title: Text("Waiting for approval in System Settings")
             ) {
                 Button { login.openLoginItemsSettings() } label: {
                     Text("Open")
@@ -450,51 +448,22 @@ struct MenuDeckPopoverView: View {
                 .buttonStyle(.plain)
             }
         } else if login.isEnabled && !login.isInApplications {
-            loginNote(
+            DeckStatusBanner(
                 icon: "exclamationmark.triangle.fill",
                 tint: .orange,
-                text: Text("This copy is not in /Applications, so login will break if it moves")
-            ) { EmptyView() }
+                title: Text("This copy is not in /Applications, so login will break if it moves")
+            )
         } else if let error = login.lastError {
-            loginNote(
+            DeckStatusBanner(
                 icon: "xmark.circle.fill",
                 tint: .red,
-                text: Text(error)
-            ) { EmptyView() }
+                title: Text(error)
+            )
         }
-    }
-
-    private func loginNote<Trailing: View>(
-        icon: String,
-        tint: Color,
-        text: Text,
-        @ViewBuilder trailing: () -> Trailing
-    ) -> some View {
-        HStack(alignment: .top, spacing: 5) {
-            Image(systemName: icon)
-                .font(.system(size: 9))
-                .foregroundStyle(tint)
-            text
-                .font(.system(size: 9))
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: 4)
-            trailing()
-        }
-        .padding(.horizontal, 10)
     }
 
     private static let appVersion =
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
-
-    private func sectionLabel(_ text: LocalizedStringKey) -> some View {
-        Text(text)
-            .font(.system(size: 10, weight: .bold))
-            .foregroundStyle(.tertiary)
-            .textCase(.uppercase)
-            .tracking(0.7)
-            .padding(.leading, 10)
-    }
 }
 
 // MARK: – Module enable/disable row
@@ -504,16 +473,19 @@ private struct ModuleToggleRow: View {
     @Binding var isEnabled: Bool
 
     var body: some View {
-        HStack(spacing: 7) {
-            Image(systemName: module.sfSymbol)
-                .font(.system(size: 11, weight: .medium))
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(isEnabled ? AnyShapeStyle(module.tintColor) : AnyShapeStyle(.tertiary))
-                .frame(width: 16)
+        HStack(spacing: 8) {
+            DeckIconBadge(
+                symbol: module.sfSymbol,
+                tint: module.tintColor,
+                size: 22,
+                iconSize: 10.5,
+                isActive: isEnabled,
+                cornerRadius: 6
+            )
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(module.name)
-                    .font(.system(size: 11, weight: .medium))
+                    .font(.system(size: 11.5, weight: .medium))
                     .foregroundStyle(isEnabled ? .primary : .secondary)
                     .lineLimit(1)
 
@@ -541,49 +513,29 @@ private struct ModuleToggleRow: View {
     }
 }
 
-// MARK: – Settings rows
+// MARK: – Settings row
 
-/// One rounded card of rows with hairlines between them — the same shape for
-/// General, Modules and Application, so the screen reads as one list rather
-/// than three different kinds of control.
-private struct SettingsGroup<Content: View>: View {
-    @ViewBuilder let content: () -> Content
-
-    var body: some View {
-        VStack(spacing: 0) {
-            Group(subviews: content()) { rows in
-                ForEach(rows) { row in
-                    row
-                    if row.id != rows.last?.id {
-                        Divider().padding(.leading, 33).opacity(0.06)
-                    }
-                }
-            }
-        }
-        .padding(.vertical, 2)
-        .background(.primary.opacity(0.045), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-    }
-}
-
-/// Same metrics as ModuleToggleRow, so every row on the screen lines up.
 private struct SettingsRow<C: View>: View {
     let label: LocalizedStringKey
     let icon: String
+    var tint: Color = .secondary
     @ViewBuilder let control: () -> C
 
     var body: some View {
-        HStack(spacing: 7) {
-            Image(systemName: icon)
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(.secondary)
-                .frame(width: 16)
+        HStack(spacing: 8) {
+            DeckIconBadge(
+                symbol: icon,
+                tint: tint,
+                size: 20,
+                iconSize: 10,
+                isActive: tint != .secondary,
+                cornerRadius: 5.5
+            )
             Text(label)
-                .font(.system(size: 11, weight: .medium))
+                .font(.system(size: 11.5, weight: .medium))
                 .lineLimit(1)
                 .minimumScaleFactor(0.9)
             Spacer(minLength: 6)
-            // The control keeps its natural width; a squeezed menu button
-            // truncates its own title ("Una…").
             control().fixedSize()
         }
         .padding(.horizontal, 10)

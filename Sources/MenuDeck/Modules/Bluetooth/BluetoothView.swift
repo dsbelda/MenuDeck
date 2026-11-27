@@ -4,28 +4,33 @@ struct BluetoothView: View {
     @StateObject private var mgr = BluetoothManager()
 
     var body: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: 10) {
             if mgr.devices.isEmpty {
-                emptyState
+                DeckEmptyState(
+                    symbol: "dot.radiowaves.left.and.right",
+                    tint: .blue,
+                    title: "No paired devices",
+                    minHeight: DeckMetrics.moduleHeight - 24
+                )
             } else {
-                ForEach(mgr.devices) { device in
-                    row(device)
-                    if device.id != mgr.devices.last?.id {
-                        Divider().padding(.leading, 40).opacity(0.06)
+                DeckCard(padding: 4) {
+                    VStack(spacing: 2) {
+                        ForEach(mgr.devices) { device in
+                            row(device)
+                        }
                     }
                 }
             }
 
             if let error = mgr.lastError {
-                Text(error)
-                    .font(.system(size: 9))
-                    .foregroundStyle(.orange)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 12)
-                    .padding(.top, 4)
+                DeckStatusBanner(
+                    icon: "exclamationmark.triangle.fill",
+                    tint: .orange,
+                    title: Text(error)
+                )
             }
         }
-        .padding(.vertical, 6)
+        .padding(DeckMetrics.horizontalPadding)
         .whileShown(mgr.start, stop: mgr.stop)
     }
 
@@ -33,49 +38,45 @@ struct BluetoothView: View {
         Button {
             mgr.toggle(device)
         } label: {
-            HStack(spacing: 10) {
-                Image(systemName: device.symbol)
-                    .font(.system(size: 13, weight: .medium))
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(device.isConnected ? Color.blue : .secondary)
-                    .frame(width: 18)
+            DeckHoverRow(
+                horizontalPadding: 8,
+                verticalPadding: 7,
+                horizontalInset: 0,
+                isSelected: device.isConnected,
+                tint: .blue
+            ) { _ in
+                HStack(spacing: 9) {
+                    DeckIconBadge(
+                        symbol: device.symbol,
+                        tint: .blue,
+                        size: 24,
+                        iconSize: 11.5,
+                        isActive: device.isConnected
+                    )
 
-                Text(device.name)
-                    .font(.system(size: 11, weight: device.isConnected ? .semibold : .regular))
-                    .foregroundStyle(device.isConnected ? .primary : .secondary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
+                    Text(device.name)
+                        .font(.system(size: 11.5, weight: device.isConnected ? .semibold : .medium))
+                        .foregroundStyle(device.isConnected ? .primary : .secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
 
-                Spacer(minLength: 6)
+                    Spacer(minLength: 6)
 
-                if mgr.busyAddress == device.address {
-                    ProgressView().controlSize(.small).scaleEffect(0.6)
-                } else if device.isConnected {
-                    Text("Connected")
-                        .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(Color.blue)
+                    if mgr.busyAddress == device.address {
+                        ProgressView().controlSize(.small).scaleEffect(0.6)
+                    } else if device.isConnected {
+                        Text("Connected")
+                            .font(.system(size: 9.5, weight: .semibold))
+                            .foregroundStyle(Color.blue)
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 2.5)
+                            .background(Color.blue.opacity(0.13), in: Capsule())
+                    }
                 }
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 7)
-            .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(DeckPressStyle(scale: 0.985))
         .disabled(mgr.busyAddress != nil)
         .help(device.isConnected ? "Click to disconnect" : "Click to connect")
-    }
-
-    private var emptyState: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "dot.radiowaves.left.and.right")
-                .font(.system(size: 24, weight: .light))
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(.tertiary)
-            Text("No paired devices")
-                .font(.system(size: 11, weight: .medium, design: .rounded))
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 26)
     }
 }

@@ -5,6 +5,7 @@ final class ClipboardModule: Module {
     let name: LocalizedStringResource = "Clipboard"
     let sfSymbol = "doc.on.clipboard"
     let tintColor: Color = .pink
+    let providesOwnScrolling = true
 
     @MainActor func makeContent() -> AnyView { AnyView(ClipboardView()) }
 

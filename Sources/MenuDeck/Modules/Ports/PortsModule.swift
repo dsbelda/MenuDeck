@@ -5,6 +5,7 @@ final class PortsModule: Module {
     let name: LocalizedStringResource = "Ports"
     let sfSymbol = "network.badge.shield.half.filled"
     let tintColor: Color = .indigo
+    let providesOwnScrolling = true
 
     @MainActor func makeContent() -> AnyView { AnyView(PortsView()) }
 }
