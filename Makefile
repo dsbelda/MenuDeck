@@ -4,7 +4,7 @@ BUNDLE      = $(APP_NAME).app
 BUILD_DIR   = .build/debug
 RELEASE_DIR = .build/release
 
-.PHONY: build bundle release run install clean icon
+.PHONY: build bundle release app run install clean icon
 
 # SwiftUI's property wrappers (@State, @Binding, …) are macros, and the compiler
 # plugin that expands them ships with Xcode but not with the Command Line Tools.
@@ -51,27 +51,24 @@ release:
 #
 # The bundle is wiped first: copying into an existing one leaves stale binaries
 # behind, and codesign then seals whatever it finds next to ours.
-bundle: build
+# $(1) is the directory holding the binary to wrap.
+define make-bundle
 	rm -rf $(BUNDLE)
 	mkdir -p $(BUNDLE)/Contents/MacOS
 	mkdir -p $(BUNDLE)/Contents/Resources
-	cp $(BUILD_DIR)/$(APP_NAME) $(BUNDLE)/Contents/MacOS/
+	cp $(1)/$(APP_NAME) $(BUNDLE)/Contents/MacOS/
 	cp Info.plist $(BUNDLE)/Contents/
 	cp Sources/$(APP_NAME)/Assets/AppIcon.icns $(BUNDLE)/Contents/Resources/
 	cp -R Resources/en.lproj Resources/es.lproj $(BUNDLE)/Contents/Resources/
 	codesign --force --sign - --identifier $(BUNDLE_ID) $(BUNDLE)
 	@echo "✓ Bundle signed: $(BUNDLE)"
+endef
+
+bundle: build
+	$(call make-bundle,$(BUILD_DIR))
 
 app: release
-	rm -rf $(BUNDLE)
-	mkdir -p $(BUNDLE)/Contents/MacOS
-	mkdir -p $(BUNDLE)/Contents/Resources
-	cp $(RELEASE_DIR)/$(APP_NAME) $(BUNDLE)/Contents/MacOS/
-	cp Info.plist $(BUNDLE)/Contents/
-	cp Sources/$(APP_NAME)/Assets/AppIcon.icns $(BUNDLE)/Contents/Resources/
-	cp -R Resources/en.lproj Resources/es.lproj $(BUNDLE)/Contents/Resources/
-	codesign --force --sign - --identifier $(BUNDLE_ID) $(BUNDLE)
-	@echo "✓ Release bundle signed: $(BUNDLE)"
+	$(call make-bundle,$(RELEASE_DIR))
 
 # Always run the signed .app bundle, never the raw binary —
 # raw binaries have no Info.plist/identity and TCC can't grant them permissions.

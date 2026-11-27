@@ -41,9 +41,7 @@ final class HotkeyManager: ObservableObject {
     /// Returns false if another module already owns the combination.
     @discardableResult
     func set(_ shortcut: Shortcut?, for moduleID: String) -> Bool {
-        if let shortcut,
-           let conflicting = shortcuts.first(where: { $0.value == shortcut && $0.key != moduleID }) {
-            _ = conflicting
+        if let shortcut, moduleOwning(shortcut, excluding: moduleID) != nil {
             return false
         }
 
