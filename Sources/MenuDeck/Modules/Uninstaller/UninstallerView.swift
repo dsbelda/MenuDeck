@@ -364,27 +364,3 @@ struct UninstallerView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
-
-// MARK: – Icon
-
-/// NSWorkspace hits the disk for each icon, so they are resolved once and kept
-/// for the life of the popover rather than looked up on every row redraw.
-private struct AppIcon: View {
-    let path: String
-    let size: CGFloat
-
-    @MainActor private static var cache: [String: NSImage] = [:]
-
-    var body: some View {
-        Image(nsImage: icon)
-            .resizable()
-            .frame(width: size, height: size)
-    }
-
-    private var icon: NSImage {
-        if let cached = Self.cache[path] { return cached }
-        let image = NSWorkspace.shared.icon(forFile: path)
-        Self.cache[path] = image
-        return image
-    }
-}

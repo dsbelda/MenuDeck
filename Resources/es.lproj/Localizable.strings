@@ -11,16 +11,16 @@
 "Screenshots"   = "Capturas";
 "Clipboard"     = "Portapapeles";
 "Output"        = "Salida";
-"Storage"       = "Almacenamiento";
+"Storage"       = "Disco";
 "Colour"        = "Color";
 
 /* — Ajustes — */
 "General"           = "General";
 "Application"       = "Aplicación";
 "Modules"           = "Módulos";
-"Default module"    = "Módulo por defecto";
+"Default module"    = "Al abrir";
 "None"              = "Ninguno";
-"Menu bar shows"    = "La barra muestra";
+"Menu bar shows"    = "En la barra";
 "RAM"               = "RAM";
 "App icon"          = "Icono";
 "Version"           = "Versión";
@@ -231,3 +231,17 @@
 "Open at login"                             = "Abrir al iniciar sesión";
 "Waiting for approval in System Settings"   = "Esperando aprobación en Ajustes del Sistema";
 "This copy is not in /Applications, so login will break if it moves" = "Esta copia no está en /Aplicaciones; el inicio fallará si se mueve";
+
+/* — Desarrollo — */
+"Dev Tools"                         = "Desarrollo";
+"Add"                               = "Añadir";
+"Remove"                            = "Quitar";
+"Right-click an app to remove it"   = "Clic derecho en una app para quitarla";
+"Apps"                              = "Apps";
+"Projects"                          = "Proyectos";
+"Open with"                         = "Abrir con";
+"Open in %@"                        = "Abrir en %@";
+"Choose"                            = "Elegir";
+"Choose folder…"                    = "Elegir carpeta…";
+"No folders in %@"                  = "No hay carpetas en %@";
+"All modules"                       = "Todos los módulos";

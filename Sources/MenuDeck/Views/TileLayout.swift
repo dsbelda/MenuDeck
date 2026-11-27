@@ -44,11 +44,17 @@ enum TileLayout: String, CaseIterable, Identifiable {
 
 // MARK: – Tiles
 
+// Icons are always drawn in the module's own colour, not just when selected:
+// with twenty tiles on the panel, colour is what the eye finds a module by.
+// Selection is carried by the background and the label weight instead.
+
 /// Icon over a label.
 struct ModuleGridTile: View {
     let module: any Module
     let isSelected: Bool
     let action: () -> Void
+
+    @State private var isHovered = false
 
     var body: some View {
         Button(action: action) {
@@ -56,7 +62,7 @@ struct ModuleGridTile: View {
                 Image(systemName: module.sfSymbol)
                     .font(.system(size: 16, weight: .medium))
                     .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(isSelected ? module.tintColor : .secondary)
+                    .foregroundStyle(module.tintColor)
                     .frame(height: 18)
                     .contentTransition(.symbolEffect(.replace))
 
@@ -68,29 +74,44 @@ struct ModuleGridTile: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 8)
-            .background(selectionBackground(module: module, isSelected: isSelected))
+            .background(selectionBackground(
+                module: module,
+                isSelected: isSelected,
+                isHovered: isHovered
+            ))
             .contentShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
         }
         .buttonStyle(.plain)
+        .onHover { isHovered = $0 }
         .animation(.easeOut(duration: 0.12), value: isSelected)
     }
 }
 
-/// Icon alone, in a square.
+/// Icon alone, in a square — or, with `showsName`, a pill with the name beside it.
 struct ModuleIconTile: View {
     let module: any Module
     let isSelected: Bool
+    var showsName = false
     let action: () -> Void
 
     @State private var isHovered = false
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: module.sfSymbol)
-                .font(.system(size: 15, weight: .medium))
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(isSelected ? module.tintColor : .secondary)
-                .frame(maxWidth: .infinity)
+            HStack(spacing: 5) {
+                Image(systemName: module.sfSymbol)
+                    .font(.system(size: 15, weight: .medium))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(module.tintColor)
+                if showsName {
+                    Text(module.name)
+                        .font(.system(size: 11, weight: .semibold))
+                        .lineLimit(1)
+                        .fixedSize()
+                }
+            }
+                .padding(.horizontal, showsName ? 9 : 0)
+                .frame(maxWidth: showsName ? nil : .infinity)
                 .frame(height: 30)
                 .background(selectionBackground(
                     module: module,
@@ -122,7 +143,7 @@ struct ModuleListRow: View {
                 Image(systemName: module.sfSymbol)
                     .font(.system(size: 12, weight: .medium))
                     .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(isSelected ? module.tintColor : .secondary)
+                    .foregroundStyle(module.tintColor)
                     .frame(width: 18)
 
                 Text(module.name)
@@ -165,7 +186,7 @@ private func selectionBackground(
     RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
         .fill(
             isSelected
-                ? module.tintColor.opacity(0.14)
+                ? module.tintColor.opacity(0.18)
                 : Color.primary.opacity(isHovered ? 0.05 : 0)
         )
 }

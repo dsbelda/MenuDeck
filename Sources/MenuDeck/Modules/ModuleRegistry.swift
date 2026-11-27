@@ -19,6 +19,7 @@ enum ModuleRegistry {
         ScreenshotModule(),
         ClipboardModule(),
         ColorPickerModule(),
+        DevAppsModule(),
         BrewModule(),
         PortsModule(),
         ShortcutsModule(),

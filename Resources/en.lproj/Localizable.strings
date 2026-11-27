@@ -234,3 +234,17 @@
 "Open at login"                             = "Open at login";
 "Waiting for approval in System Settings"   = "Waiting for approval in System Settings";
 "This copy is not in /Applications, so login will break if it moves" = "This copy is not in /Applications, so login will break if it moves";
+
+/* — Dev Tools — */
+"Dev Tools"                         = "Dev Tools";
+"Add"                               = "Add";
+"Remove"                            = "Remove";
+"Right-click an app to remove it"   = "Right-click an app to remove it";
+"Apps"                              = "Apps";
+"Projects"                          = "Projects";
+"Open with"                         = "Open with";
+"Open in %@"                        = "Open in %@";
+"Choose"                            = "Choose";
+"Choose folder…"                    = "Choose folder…";
+"No folders in %@"                  = "No folders in %@";
+"All modules"                       = "All modules";

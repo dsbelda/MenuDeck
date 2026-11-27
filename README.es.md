@@ -19,12 +19,28 @@ Una utilidad modular para la barra de menú de macOS. Vive en la esquina superio
 
 | Módulo | Descripción |
 |---|---|
-| **Volume** | Sliders de volumen y silencio por aplicación vía CoreAudio HAL |
-| **Thermal** | Estado térmico en vivo vía SMC |
-| **Battery** | Estado y salud de la batería |
-| **CPU** | Uso de CPU |
-| **Screenshot** | Captura de pantalla |
-| **Clipboard** | Historial/gestor del portapapeles |
+| **Volumen** | Sliders de volumen y silencio por aplicación vía CoreAudio HAL |
+| **Salida** | Cambia el dispositivo de salida de audio |
+| **Temperatura** | Temperaturas de los sensores en vivo vía SMC |
+| **Batería** | Carga, salud, ciclos y tiempo de pantalla |
+| **CPU / RAM** | Uso por núcleo y desglose de memoria |
+| **Disco** | Espacio libre de cada volumen montado |
+| **FPS** | Uso de GPU y el HUD de Metal del sistema |
+| **Red** | Velocidad, IP local y señal Wi-Fi |
+| **Despierto** | Mantiene el Mac y la pantalla activos, con temporizador opcional |
+| **Capturas** | Captura de pantalla completa, área o ventana |
+| **Portapapeles** | Historial del portapapeles |
+| **Color** | Cuentagotas de pantalla con historial |
+| **Desarrollo** | Acceso rápido a tu terminal, editores y agentes de programación |
+| **Brew** | Paquetes de Homebrew instalados y pendientes de actualizar |
+| **Puertos** | Puertos TCP a la escucha, y parar lo que los ocupa |
+| **Atajos** | Ejecuta Atajos desde la barra de menú |
+| **Bluetooth** | Conecta y desconecta dispositivos emparejados |
+| **Papelera** | Tamaño de la Papelera y vaciado |
+| **Desinstalar** | Elimina una app junto con los archivos que deja |
+| **Finder** | Archivos ocultos, barra de ruta, barra de estado e iconos del escritorio |
+
+Cada módulo se puede desactivar en Ajustes y tener un atajo de teclado global.
 
 ---
 
@@ -78,21 +94,19 @@ Elimina `.build/` y `MenuDeck.app`.
 
 ```
 Sources/MenuDeck/
-├── main.swift                       # Punto de entrada de NSApplication
-├── AppDelegate.swift                # Oculta del Dock (LSUIElement)
+├── main.swift                    # Punto de entrada de NSApplication
+├── AppDelegate.swift             # App sin icono en el Dock, arranque y cierre
 ├── MenuBar/
-│   └── MenuBarController.swift      # NSStatusItem + NSPopover
+│   └── MenuBarController.swift   # NSStatusItem + NSPopover, atajos globales
 ├── Views/
-│   ├── MenuDeckPopoverView.swift      # Vista raíz de SwiftUI (cuadrícula + ajustes)
-│   └── ModuleSectionView.swift      # Sección colapsable por módulo
+│   ├── MenuDeckPopoverView.swift # Vista raíz de SwiftUI (teselas + ajustes)
+│   ├── PopoverState.swift        # Módulo visible y el modificador whileShown
+│   └── TileLayout.swift          # Disposiciones: cuadrícula, iconos, lista, fila
+├── Support/                      # Shell, atajos, inicio de sesión, temporizadores
 └── Modules/
-    ├── Module.swift                 # Protocolo que implementa cada módulo
-    ├── VolumeControl/
-    ├── Thermal/
-    ├── Battery/
-    ├── CPU/
-    ├── Screenshot/
-    └── Clipboard/
+    ├── Module.swift              # Protocolo que implementa cada módulo
+    ├── ModuleRegistry.swift      # La lista de módulos y cuáles están activos
+    └── <Nombre>/                 # Una carpeta por módulo: Module, Manager, View
 ```
 
 ### Añadir un nuevo módulo
@@ -103,7 +117,7 @@ Sources/MenuDeck/
 ```swift
 final class MyModule: Module {
     let id = "my-module"
-    let name = "My Module"
+    let name: LocalizedStringResource = "My Module"
     let sfSymbol = "star.fill"
     let tintColor: Color = .blue
 
@@ -114,19 +128,19 @@ final class MyModule: Module {
 }
 ```
 
-3. Regístralo en `MenuDeckPopoverView.swift`:
+3. Regístralo en `Modules/ModuleRegistry.swift`:
 
 ```swift
-private let allModules: [any Module] = [
+static let all: [any Module] = [
     VolumeControlModule(),
-    ThermalModule(),
-    BatteryModule(),
-    CPUModule(),
-    ScreenshotModule(),
-    ClipboardModule(),
+    // …
     MyModule(),
 ]
 ```
+
+Si el módulo sondea o anima, arráncalo y páralo con `.whileShown(start, stop:)` en lugar de
+`onAppear`/`onDisappear`: cerrar el popover no desmonta el árbol de SwiftUI, así que esos nunca se
+disparan y el módulo seguiría trabajando con el popover cerrado.
 
 ---
 

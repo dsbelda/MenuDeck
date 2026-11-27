@@ -1,4 +1,5 @@
 import IOKit
+import IOKit.ps
 import SwiftUI
 
 @MainActor
@@ -23,7 +24,7 @@ final class BatteryManager: ObservableObject {
 
     func stop() { timer?.invalidate(); timer = nil }
 
-    // MARK: – Refresh (AppleSmartBattery only — avoids IOPowerSources SPM issues)
+    // MARK: – Refresh
 
     private func refresh() {
         let svc = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("AppleSmartBattery"))
@@ -45,13 +46,15 @@ final class BatteryManager: ObservableObject {
         isCharging  = get("IsCharging") ?? false
         isPluggedIn = get("ExternalConnected") ?? get("ExternalChargeCapable") ?? false
 
-        // Time remaining (0xFFFF = calculating or N/A)
-        let t: Int = get("TimeRemaining") ?? 65535
-        minutesRemaining = (t > 0 && t < 65535) ? t : nil
+        minutesRemaining = Self.estimatedMinutes()
 
-        // Health = AppleRawMaxCapacity / DesignCapacity
-        let rawMax: Int = get("AppleRawMaxCapacity") ?? get("MaxCapacity") ?? 0
-        let design: Int = get("DesignCapacity") ?? 0
+        // Health = AppleRawMaxCapacity / DesignCapacity, both in mAh. Newer
+        // systems publish them only inside the BatteryData dictionary, which
+        // left health and capacity blank. MaxCapacity is no fallback: it is a
+        // percentage.
+        let data: [String: Any] = get("BatteryData") ?? [:]
+        let rawMax = get("AppleRawMaxCapacity") ?? data["AppleRawMaxCapacity"] as? Int ?? 0
+        let design = get("DesignCapacity") ?? data["DesignCapacity"] as? Int ?? 0
         rawMaxCapacity = rawMax > 0 ? rawMax : nil
         designCapacity = design > 0 ? design : nil
         if rawMax > 0, design > 0 {
@@ -59,6 +62,32 @@ final class BatteryManager: ObservableObject {
         }
 
         cycleCount = get("CycleCount")
+    }
+
+    /// powerd's estimate — the figure the system's own battery menu shows.
+    ///
+    /// Not AppleSmartBattery's TimeRemaining: that is the charge divided by the
+    /// current draw at this instant, so a Mac sitting idle reported 79 hours.
+    /// powerd averages the draw over recent use.
+    private static func estimatedMinutes() -> Int? {
+        guard let blob = IOPSCopyPowerSourcesInfo()?.takeRetainedValue(),
+              let sources = IOPSCopyPowerSourcesList(blob)?.takeRetainedValue() as? [CFTypeRef]
+        else { return nil }
+
+        for source in sources {
+            guard let info = IOPSGetPowerSourceDescription(blob, source)?
+                    .takeUnretainedValue() as? [String: Any],
+                  info[kIOPSTypeKey] as? String == kIOPSInternalBatteryType
+            else { continue }
+
+            let charging = info[kIOPSIsChargingKey] as? Bool ?? false
+            let key = charging ? kIOPSTimeToFullChargeKey : kIOPSTimeToEmptyKey
+            // -1 while the estimate is still being worked out, 0 when it does
+            // not apply.
+            let minutes = info[key] as? Int ?? -1
+            return minutes > 0 ? minutes : nil
+        }
+        return nil
     }
 
     // MARK: – Computed display helpers

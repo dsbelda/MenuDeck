@@ -25,7 +25,7 @@ final class FinderTweaksManager: ObservableObject {
             switch self {
             case .hiddenFiles:  "eye"
             case .pathBar:      "point.topleft.down.to.point.bottomright.curvepath"
-            case .statusBar:    "sidebar.squares.bottom"
+            case .statusBar:    "rectangle.bottomthird.inset.filled"
             case .desktopIcons: "macwindow.on.rectangle"
             }
         }

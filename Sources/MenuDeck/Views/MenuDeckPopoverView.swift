@@ -138,18 +138,23 @@ struct MenuDeckPopoverView: View {
 
     /// Tall enough for the dense modules (CPU cores, thermal sensors) without
     /// leaving too much empty glass under the short ones.
-    private static let moduleHeight: CGFloat = 210
+    private static let moduleHeight: CGFloat = 260
 
+    /// Two states, never both: the full set of tiles to choose from, or one
+    /// module with the tiles folded into a strip above it. Twenty tiles in a
+    /// grid are taller than any module, so keeping the grid up while one was
+    /// open spent most of the panel on choices already made.
     private var mainPanel: some View {
         VStack(spacing: 0) {
             Divider().opacity(0.08)
 
-            tileGrid
-
             if let id = expandedId,
                let mod = visibleModules.first(where: { $0.id == id }) {
+                tileStrip
                 Divider().opacity(0.08)
                 moduleContent(mod)
+            } else {
+                tileGrid
             }
         }
         // Deliberately unanimated. Expanding a module changes the panel's
@@ -268,22 +273,56 @@ struct MenuDeckPopoverView: View {
         .padding(.vertical, 6)
     }
 
-    /// The one layout whose height never grows with the module count.
+    /// The one layout whose height never grows with the module count — and
+    /// what every layout folds into while a module is open.
     private var rowTiles: some View {
-        ScrollView(.horizontal) {
-            HStack(spacing: 4) {
-                ForEach(visibleModules, id: \.id) { mod in
-                    ModuleIconTile(module: mod, isSelected: expandedId == mod.id) {
-                        select(mod)
+        ScrollViewReader { proxy in
+            ScrollView(.horizontal) {
+                HStack(spacing: 4) {
+                    ForEach(visibleModules, id: \.id) { mod in
+                        let isSelected = expandedId == mod.id
+                        // The open module wears its name: with the grid folded
+                        // away, nothing else on the panel says what it is.
+                        ModuleIconTile(module: mod, isSelected: isSelected, showsName: isSelected) {
+                            select(mod)
+                        }
+                        .frame(width: isSelected ? nil : 34)
                     }
-                    .frame(width: 34)
                 }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 7)
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 7)
+            .scrollIndicators(.never)
+            .scrollBounceBehavior(.basedOnSize)
+            // A module opened by hot key, or from the far end of the grid,
+            // would otherwise be selected somewhere off the edge of the strip.
+            // Unwrapped on purpose: scrollTo matches ids by type as well as
+            // value, and an Optional<String> never equals the tiles' String.
+            .onAppear { if let id = expandedId { proxy.scrollTo(id, anchor: .center) } }
+            .onChange(of: expandedId) { _, id in
+                if let id { proxy.scrollTo(id, anchor: .center) }
+            }
         }
-        .scrollIndicators(.never)
-        .scrollBounceBehavior(.basedOnSize)
+    }
+
+    /// The strip, with a way back to the full set in front of it. The row
+    /// layout has no fuller view to go back to, so it gets the strip alone.
+    private var tileStrip: some View {
+        HStack(spacing: 0) {
+            if tileLayout != .row {
+                Button { expandedId = nil } label: {
+                    Image(systemName: "square.grid.2x2")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 30, height: 30)
+                        .background(.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .help(Text("All modules"))
+                .padding(.leading, 8)
+            }
+            rowTiles
+        }
     }
 
     // MARK: – Settings panel
@@ -293,101 +332,98 @@ struct MenuDeckPopoverView: View {
             Divider().opacity(0.08)
 
             ScrollView(.vertical) {
-            VStack(alignment: .leading, spacing: 18) {
-                sectionLabel("General")
+                VStack(alignment: .leading, spacing: 8) {
+                    sectionLabel("General")
 
-                SettingsRow(label: "Default module", icon: "square.grid.2x2") {
-                    Picker("", selection: $defaultModuleId) {
-                        Text("None").tag("")
-                        // Only modules that are actually on the grid: opening
-                        // onto a hidden module would show a panel with no tile.
-                        ForEach(visibleModules, id: \.id) { mod in
-                            Label(mod.name, systemImage: mod.sfSymbol).tag(mod.id)
+                    SettingsGroup {
+                        SettingsRow(label: "Default module", icon: "star") {
+                            Picker("", selection: $defaultModuleId) {
+                                Text("None").tag("")
+                                // Only modules that are actually on the grid: opening
+                                // onto a hidden module would show a panel with no tile.
+                                ForEach(visibleModules, id: \.id) { mod in
+                                    Label(mod.name, systemImage: mod.sfSymbol).tag(mod.id)
+                                }
+                            }
+                        }
+
+                        SettingsRow(label: "Layout", icon: "square.grid.2x2") {
+                            Picker("", selection: $tileLayoutRaw) {
+                                ForEach(TileLayout.allCases) { layout in
+                                    Label(layout.label, systemImage: layout.sfSymbol)
+                                        .tag(layout.rawValue)
+                                }
+                            }
+                        }
+
+                        SettingsRow(label: "Menu bar shows", icon: "menubar.rectangle") {
+                            Picker("", selection: $menuBarMode) {
+                                Label("App icon",     systemImage: "app").tag("icon")
+                                Label("Temperature",  systemImage: "thermometer.medium").tag("temp")
+                                Label("Battery",      systemImage: "battery.75").tag("battery")
+                                Label("CPU",          systemImage: "cpu").tag("cpu")
+                                Label("RAM",          systemImage: "memorychip").tag("memory")
+                            }
                         }
                     }
                     .pickerStyle(.menu)
                     .labelsHidden()
                     .controlSize(.small)
-                }
 
-                SettingsRow(label: "Layout", icon: "square.grid.2x2") {
-                    Picker("", selection: $tileLayoutRaw) {
-                        ForEach(TileLayout.allCases) { layout in
-                            Label(layout.label, systemImage: layout.sfSymbol)
-                                .tag(layout.rawValue)
-                        }
-                    }
-                    .pickerStyle(.menu)
-                    .labelsHidden()
-                    .controlSize(.small)
-                }
+                    sectionLabel("Modules")
+                        .padding(.top, 10)
 
-                SettingsRow(label: "Menu bar shows", icon: "menubar.rectangle") {
-                    Picker("", selection: $menuBarMode) {
-                        Label("App icon",     systemImage: "hand.grip").tag("icon")
-                        Label("Temperature",  systemImage: "thermometer.medium").tag("temp")
-                        Label("Battery",      systemImage: "battery.75").tag("battery")
-                        Label("CPU",          systemImage: "cpu").tag("cpu")
-                        Label("RAM",          systemImage: "memorychip").tag("memory")
-                    }
-                    .pickerStyle(.menu)
-                    .labelsHidden()
-                    .controlSize(.small)
-                }
-
-                Divider().opacity(0.07)
-
-                sectionLabel("Modules")
-
-                VStack(spacing: 0) {
-                    ForEach(ModuleRegistry.all, id: \.id) { mod in
-                        ModuleToggleRow(
-                            module: mod,
-                            isEnabled: Binding(
-                                get: { isEnabled(mod) },
-                                set: { setEnabled($0, for: mod) }
+                    SettingsGroup {
+                        ForEach(ModuleRegistry.all, id: \.id) { mod in
+                            ModuleToggleRow(
+                                module: mod,
+                                isEnabled: Binding(
+                                    get: { isEnabled(mod) },
+                                    set: { setEnabled($0, for: mod) }
+                                )
                             )
-                        )
-                        if mod.id != ModuleRegistry.all.last?.id {
-                            Divider().padding(.leading, 30).opacity(0.06)
                         }
                     }
+
+                    sectionLabel("Application")
+                        .padding(.top, 10)
+
+                    SettingsGroup {
+                        SettingsRow(label: "Open at login", icon: "power") {
+                            Toggle("", isOn: Binding(
+                                get: { login.isEnabled },
+                                set: { login.setEnabled($0) }
+                            ))
+                            .toggleStyle(.switch)
+                            .labelsHidden()
+                            .controlSize(.mini)
+                        }
+
+                        SettingsRow(label: "Version", icon: "info.circle") {
+                            Text(Self.appVersion)
+                                .font(.system(size: 11, design: .monospaced))
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+
+                    loginNotes
+
+                    Button(role: .destructive) {
+                        NSApplication.shared.terminate(nil)
+                    } label: {
+                        Label("Quit MenuDeck", systemImage: "power")
+                            .font(.system(size: 12, weight: .medium))
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.regular)
+                    .padding(.top, 8)
                 }
-                .padding(.vertical, 2)
-                .background(.primary.opacity(0.045), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-
-                Divider().opacity(0.07)
-
-                sectionLabel("Application")
-
-                launchAtLogin
-
-                HStack {
-                    Text("Version")
-                        .font(.system(size: 12))
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Text(Self.appVersion)
-                        .font(.system(size: 12, design: .monospaced))
-                        .foregroundStyle(.quaternary)
-                }
-                .padding(.horizontal, 2)
-
-                Button(role: .destructive) {
-                    NSApplication.shared.terminate(nil)
-                } label: {
-                    Label("Quit MenuDeck", systemImage: "power")
-                        .font(.system(size: 12, weight: .medium))
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.regular)
-            }
-            .padding(16)
+                .padding(12)
             }
             // The module list makes this panel taller than the screen would
             // like. A fixed height keeps the popover a stable size instead of
-            // growing to fit twelve toggles.
+            // growing to fit twenty toggles.
             .frame(height: 380)
             .scrollBounceBehavior(.basedOnSize)
         }
@@ -396,46 +432,35 @@ struct MenuDeckPopoverView: View {
 
     // MARK: – Launch at login
 
-    private var launchAtLogin: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            SettingsRow(label: "Open at login", icon: "power") {
-                Toggle("", isOn: Binding(
-                    get: { login.isEnabled },
-                    set: { login.setEnabled($0) }
-                ))
-                .toggleStyle(.switch)
-                .labelsHidden()
-                .controlSize(.small)
-            }
-
-            if login.needsApproval {
-                // The registration went through but macOS is holding it, so
-                // nothing would actually start at login until it is approved.
-                loginNote(
-                    icon: "exclamationmark.triangle.fill",
-                    tint: .orange,
-                    text: Text("Waiting for approval in System Settings")
-                ) {
-                    Button { login.openLoginItemsSettings() } label: {
-                        Text("Open")
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(.orange)
-                    }
-                    .buttonStyle(.plain)
+    @ViewBuilder
+    private var loginNotes: some View {
+        if login.needsApproval {
+            // The registration went through but macOS is holding it, so
+            // nothing would actually start at login until it is approved.
+            loginNote(
+                icon: "exclamationmark.triangle.fill",
+                tint: .orange,
+                text: Text("Waiting for approval in System Settings")
+            ) {
+                Button { login.openLoginItemsSettings() } label: {
+                    Text("Open")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(.orange)
                 }
-            } else if login.isEnabled && !login.isInApplications {
-                loginNote(
-                    icon: "exclamationmark.triangle.fill",
-                    tint: .orange,
-                    text: Text("This copy is not in /Applications, so login will break if it moves")
-                ) { EmptyView() }
-            } else if let error = login.lastError {
-                loginNote(
-                    icon: "xmark.circle.fill",
-                    tint: .red,
-                    text: Text(error)
-                ) { EmptyView() }
+                .buttonStyle(.plain)
             }
+        } else if login.isEnabled && !login.isInApplications {
+            loginNote(
+                icon: "exclamationmark.triangle.fill",
+                tint: .orange,
+                text: Text("This copy is not in /Applications, so login will break if it moves")
+            ) { EmptyView() }
+        } else if let error = login.lastError {
+            loginNote(
+                icon: "xmark.circle.fill",
+                tint: .red,
+                text: Text(error)
+            ) { EmptyView() }
         }
     }
 
@@ -456,7 +481,7 @@ struct MenuDeckPopoverView: View {
             Spacer(minLength: 4)
             trailing()
         }
-        .padding(.horizontal, 2)
+        .padding(.horizontal, 10)
     }
 
     private static let appVersion =
@@ -468,6 +493,7 @@ struct MenuDeckPopoverView: View {
             .foregroundStyle(.tertiary)
             .textCase(.uppercase)
             .tracking(0.7)
+            .padding(.leading, 10)
     }
 }
 
@@ -515,26 +541,52 @@ private struct ModuleToggleRow: View {
     }
 }
 
-// MARK: – Settings Row helper
+// MARK: – Settings rows
 
+/// One rounded card of rows with hairlines between them — the same shape for
+/// General, Modules and Application, so the screen reads as one list rather
+/// than three different kinds of control.
+private struct SettingsGroup<Content: View>: View {
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Group(subviews: content()) { rows in
+                ForEach(rows) { row in
+                    row
+                    if row.id != rows.last?.id {
+                        Divider().padding(.leading, 33).opacity(0.06)
+                    }
+                }
+            }
+        }
+        .padding(.vertical, 2)
+        .background(.primary.opacity(0.045), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
+}
+
+/// Same metrics as ModuleToggleRow, so every row on the screen lines up.
 private struct SettingsRow<C: View>: View {
     let label: LocalizedStringKey
     let icon: String
     @ViewBuilder let control: () -> C
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 7) {
             Image(systemName: icon)
-                .font(.system(size: 12, weight: .medium))
+                .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(.secondary)
                 .frame(width: 16)
             Text(label)
-                .font(.system(size: 12, weight: .medium))
-            Spacer()
-            control()
+                .font(.system(size: 11, weight: .medium))
+                .lineLimit(1)
+                .minimumScaleFactor(0.9)
+            Spacer(minLength: 6)
+            // The control keeps its natural width; a squeezed menu button
+            // truncates its own title ("Una…").
+            control().fixedSize()
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .background(.primary.opacity(0.045), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
     }
 }
