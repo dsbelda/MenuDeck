@@ -7,6 +7,9 @@ final class DiskManager: ObservableObject {
         let name: String
         let total: Int64
         let free: Int64
+        /// A mounted disk image or installer. It is full by construction, so
+        /// its usage is shown without the warning colours.
+        let isReadOnly: Bool
         var used: Int64 { max(0, total - free) }
         var usedFraction: Double { total > 0 ? Double(used) / Double(total) : 0 }
     }
@@ -33,7 +36,9 @@ final class DiskManager: ObservableObject {
         // block that call for seconds — never on the main thread.
         Task.detached(priority: .utility) {
             let scanned = Self.scan()
-            await MainActor.run { self.volumes = scanned }
+            await MainActor.run {
+                if scanned != self.volumes { self.volumes = scanned }
+            }
         }
     }
 
@@ -43,6 +48,7 @@ final class DiskManager: ObservableObject {
             .volumeTotalCapacityKey,
             .volumeAvailableCapacityForImportantUsageKey,
             .volumeIsBrowsableKey,
+            .volumeIsReadOnlyKey,
         ]
 
         let mounts = FileManager.default.mountedVolumeURLs(
@@ -65,7 +71,8 @@ final class DiskManager: ObservableObject {
                 id: url.path,
                 name: values.volumeName ?? url.lastPathComponent,
                 total: Int64(total),
-                free: free
+                free: free,
+                isReadOnly: values.volumeIsReadOnly == true
             )
         }
         .sorted { $0.total > $1.total }

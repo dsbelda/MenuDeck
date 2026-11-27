@@ -15,7 +15,7 @@ struct TrashView: View {
                 contents
             }
         }
-        .onAppear { mgr.refresh() }
+        .whileShown { mgr.refresh() }
     }
 
     // MARK: – Granted

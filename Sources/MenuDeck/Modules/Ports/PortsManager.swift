@@ -44,11 +44,14 @@ final class PortsManager: ObservableObject {
                 "/usr/sbin/lsof",
                 // -nP keeps numeric hosts and ports so nothing has to be
                 // resolved: name lookups made this take seconds on a busy box.
-                ["-nP", "-iTCP", "-sTCP:LISTEN"]
+                //
+                // +c 0 lifts lsof's nine-character cap on the command column,
+                // which turned ControlCenter into "ControlCe".
+                ["+c", "0", "-nP", "-iTCP", "-sTCP:LISTEN"]
             )
             let parsed = Self.parse(result.output, currentUser: user)
             await MainActor.run {
-                self.listeners = parsed
+                if parsed != self.listeners { self.listeners = parsed }
                 self.isLoading = false
             }
         }
@@ -92,7 +95,8 @@ final class PortsManager: ObservableObject {
             guard columns.count >= 9,
                   let pid = Int32(columns[1]) else { continue }
 
-            let command = String(columns[0])
+            // lsof escapes spaces so the column stays one token.
+            let command = columns[0].replacingOccurrences(of: "\\x20", with: " ")
             let user = String(columns[2])
             let name = String(columns[columns.count - 2])   // e.g. *:3000 or 127.0.0.1:5432
 

@@ -2,7 +2,7 @@ import SwiftUI
 
 struct BatteryView: View {
     @StateObject private var mgr = BatteryManager()
-    @StateObject private var screen = ScreenTimeReader()
+    @ObservedObject private var screen = ScreenTimeReader.shared
 
     var body: some View {
         VStack(spacing: 0) {
@@ -12,8 +12,7 @@ struct BatteryView: View {
             Divider().opacity(0.08)
             screenTime
         }
-        .onAppear  { mgr.start(); screen.load() }
-        .onDisappear { mgr.stop() }
+        .whileShown({ mgr.start(); screen.load() }, stop: mgr.stop)
     }
 
     // MARK: – Screen-on time
@@ -244,7 +243,11 @@ struct BatteryView: View {
             Text(value)
                 .font(.system(size: 15, weight: .bold, design: .rounded).monospacedDigit())
                 .foregroundStyle(color == .secondary ? Color.primary : color)
+                // "4539/4629" is wider than a third of the panel at full size.
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
         }
+        .padding(.horizontal, 6)
         .frame(maxWidth: .infinity)
     }
 

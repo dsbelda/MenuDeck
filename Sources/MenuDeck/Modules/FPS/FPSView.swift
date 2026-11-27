@@ -10,8 +10,7 @@ struct FPSView: View {
             toggleRow
             note
         }
-        .onAppear   { mgr.start() }
-        .onDisappear { mgr.stop() }
+        .whileShown(mgr.start, stop: mgr.stop)
     }
 
     // MARK: – GPU stat
@@ -28,8 +27,6 @@ struct FPSView: View {
                     Text(mgr.utilizationPercent.map { "\($0)" } ?? "—")
                         .font(.system(size: 32, weight: .bold, design: .rounded).monospacedDigit())
                         .foregroundStyle(Color.mint.gradient)
-                        .contentTransition(.numericText())
-                        .animation(.spring(response: 0.5), value: mgr.utilizationPercent)
                     if mgr.utilizationPercent != nil {
                         Text("%")
                             .font(.system(size: 16, weight: .semibold, design: .rounded))
@@ -59,6 +56,7 @@ struct FPSView: View {
                     .font(.system(size: 10))
                     .foregroundStyle(.tertiary)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .toggleStyle(.switch)
         .controlSize(.small)

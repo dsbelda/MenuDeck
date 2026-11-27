@@ -4,7 +4,7 @@ import Darwin
 import IOKit
 
 @MainActor
-final class MenuBarController: NSObject {
+final class MenuBarController: NSObject, NSPopoverDelegate {
     private var statusItem: NSStatusItem
     private var popover: NSPopover
     private var hostingController: NSHostingController<MenuDeckPopoverView>
@@ -65,12 +65,20 @@ final class MenuBarController: NSObject {
         // the content is interactive, and it stacks with the SwiftUI transitions
         // inside. A menu bar panel should be on screen the instant it's clicked.
         popover.animates = false
-        if #available(macOS 13.0, *) {
-            hostingController.sizingOptions = .preferredContentSize
-        } else {
-            popover.contentSize = NSSize(width: 320, height: 440)
-        }
+        popover.delegate = self
+        hostingController.sizingOptions = .preferredContentSize
         popover.contentViewController = hostingController
+    }
+
+    // The delegate rather than the two places that call show(): a transient
+    // popover mostly closes itself, on a click anywhere else, and that never
+    // passes through our code.
+    func popoverWillShow(_ notification: Notification) {
+        PopoverState.shared.isShown = true
+    }
+
+    func popoverDidClose(_ notification: Notification) {
+        PopoverState.shared.isShown = false
     }
 
     // MARK: – Global shortcuts
@@ -94,15 +102,7 @@ final class MenuBarController: NSObject {
 
         state.screen = .main
         state.expandedID = moduleID
-
-        guard let button = statusItem.button else { return }
-        if !popover.isShown {
-            popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
-        }
-        // Without this the popover appears behind whatever app the user was in,
-        // and its controls stay unresponsive until they click it.
-        NSApp.activate(ignoringOtherApps: true)
-        popover.contentViewController?.view.window?.makeKey()
+        showPopover()
     }
 
     // MARK: – Display timer
@@ -117,14 +117,16 @@ final class MenuBarController: NSObject {
         syncDisplayTimer()
     }
 
+    /// Only ever called at launch and when the mode changes, so the timer is
+    /// simply rebuilt at the pace the new readout needs: a battery percentage
+    /// moves about once a minute, the others are worth five seconds.
     private func syncDisplayTimer() {
-        guard modeNeedsTimer else {
-            displayTimer?.invalidate()
-            displayTimer = nil
-            return
-        }
-        guard displayTimer == nil else { return }
-        displayTimer = .repeating(every: 5, tolerance: 1) { [weak self] _ in
+        displayTimer?.invalidate()
+        displayTimer = nil
+        guard modeNeedsTimer else { return }
+
+        let interval: TimeInterval = currentMode == "battery" ? 60 : 5
+        displayTimer = .repeating(every: interval, tolerance: interval / 5) { [weak self] _ in
             Task { @MainActor in self?.refreshDisplay() }
         }
     }
@@ -176,6 +178,8 @@ final class MenuBarController: NSObject {
 
     private func setTitle(_ text: String) {
         guard let button = statusItem.button else { return }
+        // Most ticks read the same number; leave the menu bar alone then.
+        guard button.image != nil || button.title != text else { return }
         button.image = nil
         button.attributedTitle = NSAttributedString(
             string: text,
@@ -196,24 +200,28 @@ final class MenuBarController: NSObject {
     }
 
     @objc private func togglePopover() {
-        guard let button = statusItem.button else { return }
         if popover.isShown {
             popover.performClose(nil)
         } else {
-            popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
-            // Keyboard input needs the app to be active and the popover's window
-            // to be key. Without this a TextField cannot become first responder,
-            // so the uninstaller's filter field silently ignored typing, and the
-            // shortcut recorder — which listens through a *local* event monitor —
-            // never saw a keystroke when the popover was opened by clicking.
-            NSApp.activate(ignoringOtherApps: true)
-            popover.contentViewController?.view.window?.makeKey()
-            // No eager CoreAudio refresh here: refresh() is @MainActor and
-            // enumerating the HAL walks every audio process and its parent
-            // chain, so it stalled the main thread on every single open — even
-            // when the volume module was never shown. VolumeControlView already
-            // refreshes in its own onAppear, which is the only time it matters.
+            showPopover()
         }
+    }
+
+    private func showPopover() {
+        guard let button = statusItem.button else { return }
+        if !popover.isShown {
+            popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        }
+        // Keyboard input needs the app to be active and the popover's window to
+        // be key. Without this it appears behind whatever app the user was in, a
+        // TextField cannot become first responder, and the shortcut recorder —
+        // which listens through a *local* event monitor — never sees a keystroke.
+        //
+        // No eager module refresh here either: whatever is on screen refreshes
+        // itself through whileShown, so a module nobody is looking at costs
+        // nothing on open.
+        NSApp.activate(ignoringOtherApps: true)
+        popover.contentViewController?.view.window?.makeKey()
     }
 
     // MARK: – Inline data readers (avoids depending on module VMs)

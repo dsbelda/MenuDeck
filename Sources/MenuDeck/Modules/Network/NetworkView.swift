@@ -9,8 +9,7 @@ struct NetworkView: View {
             Divider().opacity(0.08)
             info
         }
-        .onAppear   { mgr.start() }
-        .onDisappear { mgr.stop() }
+        .whileShown(mgr.start, stop: mgr.stop)
     }
 
     // MARK: – Speeds
@@ -39,8 +38,6 @@ struct NetworkView: View {
             Text(Self.formatSpeed(value))
                 .font(.system(size: 15, weight: .bold, design: .rounded).monospacedDigit())
                 .foregroundStyle(.primary)
-                .contentTransition(.numericText())
-                .animation(.spring(response: 0.4), value: value)
         }
         .frame(maxWidth: .infinity)
     }

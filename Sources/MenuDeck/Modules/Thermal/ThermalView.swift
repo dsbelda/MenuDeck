@@ -39,9 +39,15 @@ final class ThermalViewModel: ObservableObject {
         timer = nil
     }
 
+    /// Assigning a @Published property redraws the panel even when the new
+    /// value is the old one, and most refreshes of a Mac at rest change nothing.
     private func refresh() {
-        thermalState = ProcessInfo.processInfo.thermalState
-        Task { readings = await SMCManager.shared.readTemperatures() }
+        let state = ProcessInfo.processInfo.thermalState
+        if state != thermalState { thermalState = state }
+        Task {
+            let fresh = await SMCManager.shared.readTemperatures()
+            if fresh != readings { readings = fresh }
+        }
     }
 }
 
@@ -67,8 +73,7 @@ struct ThermalView: View {
                 logsPanel(diag)
             }
         }
-        .onAppear  { vm.start() }
-        .onDisappear { vm.stop() }
+        .whileShown(vm.start, stop: vm.stop)
     }
 
     private func logsPanel(_ text: String) -> some View {
@@ -124,8 +129,6 @@ struct ThermalView: View {
                         Text(String(format: "%.0f", maxTemp))
                             .font(.system(size: 36, weight: .bold, design: .rounded).monospacedDigit())
                             .foregroundStyle(tempColor(maxTemp).gradient)
-                            .contentTransition(.numericText())
-                            .animation(.spring(response: 0.5), value: maxTemp)
                         Text("°C")
                             .font(.system(size: 18, weight: .semibold, design: .rounded))
                             .foregroundStyle(.secondary)
@@ -296,7 +299,6 @@ struct TempRow: View {
                             )
                         )
                         .frame(width: max(7, geo.size.width * fillFraction(reading.value)), height: 7)
-                        .animation(.easeOut(duration: 0.5), value: reading.value)
                 }
             }
             .frame(height: 7)
@@ -305,8 +307,6 @@ struct TempRow: View {
                 .font(.system(size: 11, weight: .bold, design: .monospaced))
                 .foregroundStyle(barColor(reading.value))
                 .frame(width: 38, alignment: .trailing)
-                .contentTransition(.numericText())
-                .animation(.spring(response: 0.5), value: reading.value)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 7)

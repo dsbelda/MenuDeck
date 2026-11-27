@@ -33,7 +33,7 @@ final class ClipboardManager: ObservableObject {
 
         if enabled {
             lastChangeCount = NSPasteboard.general.changeCount
-            timer = .repeating(every: 1.5, tolerance: 0.3) { [weak self] _ in
+            timer = .repeating(every: 1.5, tolerance: 0.75) { [weak self] _ in
                 Task { @MainActor in self?.poll() }
             }
         } else {

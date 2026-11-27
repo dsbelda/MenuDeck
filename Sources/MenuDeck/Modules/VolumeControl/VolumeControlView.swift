@@ -24,7 +24,7 @@ struct VolumeControlView: View {
                 }
             }
         }
-        .onAppear { manager.refresh() }
+        .whileShown { manager.refresh() }
     }
 
     private func permissionBanner(message: String) -> some View {

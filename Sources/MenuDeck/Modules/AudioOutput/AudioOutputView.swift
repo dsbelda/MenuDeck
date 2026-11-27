@@ -17,8 +17,7 @@ struct AudioOutputView: View {
             }
         }
         .padding(.vertical, 6)
-        .onAppear    { mgr.start() }
-        .onDisappear { mgr.stop() }
+        .whileShown(mgr.start, stop: mgr.stop)
     }
 
     private func row(_ device: AudioOutputManager.Device) -> some View {

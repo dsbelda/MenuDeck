@@ -39,7 +39,7 @@ struct ShortcutRecorder: View {
         .help(helpText)
         // A recorder left armed would keep swallowing keystrokes after the
         // popover closes.
-        .onDisappear { stopRecording() }
+        .whileShown(stop: stopRecording)
         .onChange(of: isEnabled) { _, enabled in
             if !enabled { stopRecording() }
         }

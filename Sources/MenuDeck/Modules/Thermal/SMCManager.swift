@@ -178,10 +178,12 @@ let knownTempKeys: [TempKey] = [
 
 // MARK: - Result
 
-struct TempReading: Identifiable {
+struct TempReading: Identifiable, Equatable {
     let id:    String  // key
     let label: String
-    let value: Double  // Celsius
+    /// Celsius, in whole degrees: that is all the panel shows, and it lets a
+    /// steady sensor compare equal from one refresh to the next.
+    let value: Double
     let group: TempKey.Group
 }
 
@@ -240,7 +242,7 @@ actor SMCManager {
         // Fast path: try the static key list first
         let static_ = knownTempKeys.compactMap { def -> TempReading? in
             guard let temp = readTemperature(key: def.key), temp > 1, temp < 130 else { return nil }
-            return TempReading(id: def.key, label: def.label, value: temp, group: def.group)
+            return TempReading(id: def.key, label: def.label, value: temp.rounded(), group: def.group)
         }
         if !static_.isEmpty { return static_ }
 
@@ -371,7 +373,7 @@ actor SMCManager {
 
             // Label: prefer static table, otherwise derive from prefix
             if let def = knownTempKeys.first(where: { $0.key == key }) {
-                results.append(TempReading(id: key, label: def.label, value: temp, group: def.group))
+                results.append(TempReading(id: key, label: def.label, value: temp.rounded(), group: def.group))
             } else {
                 let group = groupForUnknownKey(key)
                 let label: String
@@ -380,7 +382,7 @@ actor SMCManager {
                 case .gpu:    label = "GPU \(gpuN)"; gpuN += 1
                 case .system: label = "System \(sysN)"; sysN += 1
                 }
-                results.append(TempReading(id: key, label: label, value: temp, group: group))
+                results.append(TempReading(id: key, label: label, value: temp.rounded(), group: group))
             }
         }
         return results
@@ -456,14 +458,26 @@ actor SMCManager {
         return parseTemp(bytes: bytes, typeCode: info.dataType)
     }
 
+    /// A key's size and type never change, and a key this chip does not have
+    /// never appears. The table covers five chip generations, so most of it
+    /// misses on any one Mac — and every refresh used to ask again for all of
+    /// it, which was three quarters of the IOKit calls this module made.
+    private var keyInfoCache: [String: SMCKeyInfoData?] = [:]
+
     private func getKeyInfo(key: String) -> SMCKeyInfoData? {
+        if let cached = keyInfoCache[key] { return cached }
+
         var input  = SMCParamStruct()
         var output = SMCParamStruct()
         input.key   = fourCC(key)
         input.data8 = SMCCommand.getKeyInfo.rawValue
 
-        guard callSMC(input: &input, output: &output), output.result == 0 else { return nil }
-        return output.keyInfo
+        // A failed call says nothing about the key, so it is not remembered;
+        // only the SMC's own answer is.
+        guard callSMC(input: &input, output: &output) else { return nil }
+        let info = output.result == 0 ? output.keyInfo : nil
+        keyInfoCache.updateValue(info, forKey: key)
+        return info
     }
 
     private func readKeyBytes(key: String, dataSize: IOByteCount32) -> [UInt8]? {

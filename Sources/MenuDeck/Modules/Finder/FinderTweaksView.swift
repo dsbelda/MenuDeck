@@ -15,7 +15,7 @@ struct FinderTweaksView: View {
             footer
         }
         .padding(.vertical, 6)
-        .onAppear { mgr.refresh() }
+        .whileShown { mgr.refresh() }
     }
 
     private func row(_ tweak: FinderTweaksManager.Tweak) -> some View {

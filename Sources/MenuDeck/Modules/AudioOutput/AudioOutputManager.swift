@@ -34,8 +34,10 @@ final class AudioOutputManager: ObservableObject {
     }
 
     func refresh() {
-        devices = Self.outputDevices()
-        currentID = Self.defaultOutput()
+        // Unchanged on nearly every tick; publishing anyway redrew the list.
+        let fresh = Self.outputDevices(), current = Self.defaultOutput()
+        if fresh != devices { devices = fresh }
+        if current != currentID { currentID = current }
     }
 
     func select(_ device: Device) {

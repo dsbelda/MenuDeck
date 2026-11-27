@@ -30,8 +30,7 @@ struct PortsView: View {
             }
         }
         .padding(.bottom, 4)
-        .onAppear    { mgr.start() }
-        .onDisappear { mgr.stop() }
+        .whileShown(mgr.start, stop: mgr.stop)
     }
 
     private var toolbar: some View {

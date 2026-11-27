@@ -17,8 +17,7 @@ struct DiskView: View {
             }
         }
         .padding(.vertical, 4)
-        .onAppear    { mgr.start() }
-        .onDisappear { mgr.stop() }
+        .whileShown(mgr.start, stop: mgr.stop)
     }
 
     private func row(_ volume: DiskManager.Volume) -> some View {
@@ -33,14 +32,14 @@ struct DiskView: View {
                 Spacer()
                 Text("\(Int((volume.usedFraction * 100).rounded()))%")
                     .font(.system(size: 11, weight: .semibold, design: .rounded).monospacedDigit())
-                    .foregroundStyle(tint(for: volume.usedFraction))
+                    .foregroundStyle(tint(for: volume))
             }
 
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Capsule().fill(.primary.opacity(0.08))
                     Capsule()
-                        .fill(tint(for: volume.usedFraction).gradient)
+                        .fill(tint(for: volume).gradient)
                         .frame(width: max(4, geo.size.width * volume.usedFraction))
                 }
             }
@@ -54,11 +53,12 @@ struct DiskView: View {
         .padding(.vertical, 9)
     }
 
-    private func tint(for fraction: Double) -> Color {
-        switch fraction {
-        case ..<0.75: .yellow
-        case ..<0.90: .orange
-        default:      .red
+    private func tint(for volume: DiskManager.Volume) -> Color {
+        if volume.isReadOnly { return .secondary }
+        switch volume.usedFraction {
+        case ..<0.75: return .yellow
+        case ..<0.90: return .orange
+        default:      return .red
         }
     }
 

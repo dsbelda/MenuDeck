@@ -30,8 +30,8 @@ extension Module {
     /// Most modules only need frameworks that ship with macOS.
     var requirementWarning: LocalizedStringResource? { nil }
 
-    /// Most modules start and stop with their view's onAppear/onDisappear, so
-    /// being switched off costs them nothing and there is nothing to do here.
+    /// Most modules start and stop with their view's `whileShown`, so being
+    /// switched off costs them nothing and there is nothing to do here.
     func setEnabled(_ enabled: Bool) {}
 
     /// Most modules are a single short panel that can scroll as one piece.

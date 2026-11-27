@@ -2,6 +2,7 @@ import SwiftUI
 
 struct CaffeineView: View {
     @ObservedObject private var mgr = CaffeineManager.shared
+    @ObservedObject private var popover = PopoverState.shared
 
     var body: some View {
         VStack(spacing: 0) {
@@ -17,10 +18,13 @@ struct CaffeineView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Keep the Mac awake")
                         .font(.system(size: 12, weight: .medium))
-                    Text(mgr.isActive ? statusText : String(localized: "Prevents sleep and screen lock"))
+                    status
                         .font(.system(size: 10))
                         .foregroundStyle(.tertiary)
                 }
+                // Without this the toggle hugs its label and the pair floats
+                // in the middle of the row.
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
             .toggleStyle(.switch)
             .controlSize(.small)
@@ -30,16 +34,15 @@ struct CaffeineView: View {
         .padding(.vertical, 12)
     }
 
-    private var statusText: String {
-        guard let remaining = mgr.remainingSeconds else {
-            return String(localized: "Active indefinitely")
-        }
-        let h = remaining / 3600, m = (remaining % 3600) / 60, s = remaining % 60
-        // Formatted separately so the localized string carries one clock
-        // placeholder rather than three positional integers.
-        let clock = h > 0 ? String(format: "%d:%02d:%02d", h, m, s)
-                          : String(format: "%d:%02d", m, s)
-        return String(localized: "Active · \(clock) left")
+    private var status: Text {
+        guard mgr.isActive else { return Text("Prevents sleep and screen lock") }
+        guard let end = mgr.endDate else { return Text("Active indefinitely") }
+        // A timer text redraws itself every second whether or not its window is
+        // on screen, so it only exists while the popover does.
+        guard popover.isShown else { return Text(verbatim: " ") }
+        // max(): the range traps if the session ended a moment before the
+        // expiry timer got round to saying so.
+        return Text("Active · \(Text(timerInterval: Date.now...max(end, .now))) left")
     }
 
     private var durationPicker: some View {

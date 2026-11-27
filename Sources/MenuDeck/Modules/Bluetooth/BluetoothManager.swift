@@ -36,7 +36,7 @@ final class BluetoothManager: ObservableObject {
     func refresh() {
         let paired = IOBluetoothDevice.pairedDevices() as? [IOBluetoothDevice] ?? []
 
-        devices = paired.compactMap { device in
+        let fresh: [Device] = paired.compactMap { device in
             guard let address = device.addressString else { return nil }
             return Device(
                 address: address,
@@ -54,6 +54,8 @@ final class BluetoothManager: ObservableObject {
                 ? $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
                 : $0.isConnected
         }
+        // Unchanged on nearly every tick; publishing it anyway redrew the list.
+        if fresh != devices { devices = fresh }
     }
 
     func toggle(_ device: Device) {

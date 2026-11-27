@@ -8,6 +8,11 @@ import Foundation
 /// cost the user a heavy permission for data macOS already publishes.
 @MainActor
 final class ScreenTimeReader: ObservableObject {
+    /// Shared so the result outlives the view: switching to another module and
+    /// back used to throw it away and pay for the whole log again.
+    static let shared = ScreenTimeReader()
+    private init() {}
+
     struct Day: Identifiable, Equatable, Sendable {
         let date: Date
         let seconds: TimeInterval
@@ -34,15 +39,22 @@ final class ScreenTimeReader: ObservableObject {
         return days.first { Calendar.current.isDate($0.date, inSameDayAs: start) }?.seconds ?? 0
     }
 
-    /// `pmset -g log` dumps tens of thousands of lines and takes over a second,
-    /// so it is never put on a timer and the result is held for five minutes.
+    /// `pmset -g log` dumps tens of thousands of lines and burns over two
+    /// seconds of CPU, so it is never put on a timer and the result is held for
+    /// ten minutes.
     func load(force: Bool = false) {
         guard !isLoading else { return }
-        if !force, let lastLoaded, Date().timeIntervalSince(lastLoaded) < 300 { return }
+        if !force, let lastLoaded, Date().timeIntervalSince(lastLoaded) < 600 { return }
 
         isLoading = true
         Task.detached(priority: .utility) {
-            let result = Shell.run("/usr/bin/pmset", ["-g", "log"])
+            // grep keeps the two kinds of line the parser reads and drops the
+            // rest before they reach this process: the full log is 13 MB, and
+            // pulling it in to split in Swift was the app's memory peak.
+            let result = Shell.run("/bin/sh", [
+                "-c",
+                "/usr/bin/pmset -g log | /usr/bin/grep -E 'Display is turned|Charge:'",
+            ])
             let parsed = Self.parse(result.output, now: Date())
 
             await MainActor.run {

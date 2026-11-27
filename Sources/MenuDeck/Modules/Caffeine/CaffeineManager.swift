@@ -13,7 +13,8 @@ final class CaffeineManager: ObservableObject {
             isActive ? activate() : deactivate()
         }
     }
-    @Published var remainingSeconds: Int? = nil
+    /// When a timed session ends. Nil while idle or running indefinitely.
+    @Published private(set) var endDate: Date?
     @Published var selectedDurationIndex: Int = durations.count - 1  // "Indefinido" by default
 
     static let durations: [(label: LocalizedStringResource, seconds: TimeInterval?)] = [
@@ -25,7 +26,7 @@ final class CaffeineManager: ObservableObject {
     ]
 
     private var assertionID: IOPMAssertionID = 0
-    private var countdownTimer: Timer?
+    private var expiryTimer: Timer?
 
     private init() {}
 
@@ -43,23 +44,20 @@ final class CaffeineManager: ObservableObject {
         guard result == kIOReturnSuccess else { isActive = false; return }
         assertionID = id
 
-        if let duration = Self.durations[selectedDurationIndex].seconds {
-            remainingSeconds = Int(duration)
-            countdownTimer = .repeating(every: 1, tolerance: 0.1) { [weak self] _ in
-                Task { @MainActor in self?.tickCountdown() }
-            }
-        } else {
-            remainingSeconds = nil
-        }
-    }
+        guard let duration = Self.durations[selectedDurationIndex].seconds else { return }
+        let end = Date().addingTimeInterval(duration)
+        endDate = end
 
-    private func tickCountdown() {
-        guard let remaining = remainingSeconds else { return }
-        if remaining <= 1 {
-            isActive = false
-        } else {
-            remainingSeconds = remaining - 1
+        // One wake-up when the session ends, not one a second for the whole of
+        // it: a two-hour session used to tick 7,200 times to count down a
+        // number nobody could see with the popover shut. The view draws the
+        // countdown from `endDate` on its own, and only while it is on screen.
+        let timer = Timer(fire: end, interval: 0, repeats: false) { [weak self] _ in
+            Task { @MainActor in self?.isActive = false }
         }
+        timer.tolerance = 1
+        RunLoop.main.add(timer, forMode: .common)
+        expiryTimer = timer
     }
 
     private func deactivate() {
@@ -67,8 +65,8 @@ final class CaffeineManager: ObservableObject {
             IOPMAssertionRelease(assertionID)
             assertionID = 0
         }
-        countdownTimer?.invalidate()
-        countdownTimer = nil
-        remainingSeconds = nil
+        expiryTimer?.invalidate()
+        expiryTimer = nil
+        endDate = nil
     }
 }

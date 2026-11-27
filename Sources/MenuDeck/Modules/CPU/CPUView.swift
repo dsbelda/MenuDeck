@@ -9,8 +9,7 @@ struct CPUView: View {
             Divider().opacity(0.08)
             memorySection
         }
-        .onAppear  { mgr.start() }
-        .onDisappear { mgr.stop() }
+        .whileShown(mgr.start, stop: mgr.stop)
     }
 
     // MARK: – CPU
@@ -28,8 +27,6 @@ struct CPUView: View {
                 Text(String(format: "%.0f%%", mgr.avgPercent))
                     .font(.system(size: 11, weight: .bold, design: .monospaced))
                     .foregroundStyle(.indigo)
-                    .contentTransition(.numericText())
-                    .animation(.easeOut(duration: 0.4), value: mgr.avgPercent)
             }
 
             // Core grid — 2 columns
@@ -107,7 +104,6 @@ private struct CoreBar: View {
                     Capsule()
                         .fill(color.gradient)
                         .frame(width: max(4, geo.size.width * percent / 100), height: 5)
-                        .animation(.easeOut(duration: 0.4), value: percent)
                 }
             }
             .frame(height: 5)
@@ -116,8 +112,6 @@ private struct CoreBar: View {
                 .font(.system(size: 9, weight: .medium, design: .monospaced))
                 .foregroundStyle(.secondary)
                 .frame(width: 26, alignment: .trailing)
-                .contentTransition(.numericText())
-                .animation(.easeOut(duration: 0.4), value: percent)
         }
     }
 }
@@ -148,7 +142,6 @@ private struct MemBar: View {
                     Capsule()
                         .fill(color.gradient)
                         .frame(width: max(6, geo.size.width * fraction), height: 6)
-                        .animation(.easeOut(duration: 0.5), value: fraction)
                 }
             }
             .frame(height: 6)
@@ -157,8 +150,6 @@ private struct MemBar: View {
                 .font(.system(size: 10, weight: .semibold, design: .monospaced))
                 .foregroundStyle(color)
                 .frame(width: 46, alignment: .trailing)
-                .contentTransition(.numericText())
-                .animation(.easeOut(duration: 0.5), value: value)
         }
     }
 }

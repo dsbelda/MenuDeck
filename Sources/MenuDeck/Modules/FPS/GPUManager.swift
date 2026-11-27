@@ -24,7 +24,8 @@ final class GPUManager: ObservableObject {
     func stop() { timer?.invalidate(); timer = nil }
 
     private func refresh() {
-        utilizationPercent = Self.readGPUUtilization()
+        let fresh = Self.readGPUUtilization()
+        if fresh != utilizationPercent { utilizationPercent = fresh }
     }
 
     // MARK: – IOAccelerator performance statistics (Apple Silicon GPU)
